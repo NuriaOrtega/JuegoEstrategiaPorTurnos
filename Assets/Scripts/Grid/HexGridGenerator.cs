@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class NewMonoBehaviourScript : MonoBehaviour
+public class HexGridGenerator : MonoBehaviour
 {
     [Header("Configuración de la cuadrícula")]
     public int gridWidth = 10;
@@ -34,16 +34,16 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
                 if (col % 2 == 1) zPos += zOffset * 0.5f;
 
-                Vector3 spawnPos = new Vector3(xPos, 0f, zPos);
+                Vector3 spawnPos = new(xPos, 0f, zPos);
 
-                Quaternion rotation = Quaternion.Euler(90f, 0f, 0f);
-                GameObject hexGO = Instantiate(hexPrefab, spawnPos, rotation, this.transform);
+                Quaternion rotation = Quaternion.Euler(90f, 0f, 30f);
+                GameObject hexGO = Instantiate(hexPrefab, spawnPos, rotation, transform);
                 hexGO.name = $"Hex_{col}_{row}";
 
                 HexTileInfo info = hexGO.GetComponent<HexTileInfo>();
                 if (info != null) {
-                    info.q = col;
-                    info.r = row;
+                    info.gridPosition.x = col;
+                    info.gridPosition.y = row;
                 }
             }
         }
