@@ -1,38 +1,113 @@
 using UnityEngine;
 
-public class RaycastDesdeCamara : MonoBehaviour
+/// <summary>
+/// Maneja la entrada del ratón para selección e interacción con celdas.
+/// </summary>
+public class InputManager : MonoBehaviour
 {
+    [SerializeField] private HexGrid hexGrid;
+    [SerializeField] private GameManager gameManager;
+
+    private Camera mainCamera;
+    private HexCell selectedCell;
+    private HexCell hoveredCell;
+
+    void Start()
+    {
+        mainCamera = Camera.main;
+
+        if (hexGrid == null)
+            hexGrid = FindObjectOfType<HexGrid>();
+
+        if (gameManager == null)
+            gameManager = FindObjectOfType<GameManager>();
+    }
+
     void Update()
     {
-        // Detectar clic con el botón izquierdo del mouse
-        if (Input.GetMouseButtonDown(0))
+        HandleMouseHover();
+        HandleMouseClick();
+    }
+
+    private void HandleMouseHover()
+    {
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit))
         {
-            // Crear un rayo desde la cámara hacia donde está el puntero del mouse
-            Ray rayo = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-            // Guardar información del objeto impactado
-            RaycastHit hit;
-
-            // Lanza el rayo
-            if (Physics.Raycast(rayo, out hit))
+            HexCell cell = hit.collider.GetComponent<HexCell>();
+            if (cell != null && cell != hoveredCell)
             {
-                Debug.Log("El rayo impactó con: " + hit.collider.name);
-
-                // Puedes hacer algo con el objeto impactado
-                // Ejemplo: cambiar color
-                Renderer rend = hit.collider.GetComponent<Renderer>();
-                if (rend != null)
+                if (hoveredCell != null && hoveredCell != selectedCell)
                 {
-                    rend.material.color = Color.red;
+                    hoveredCell.Highlight(false);
                 }
 
-                // También puedes visualizar el rayo en la escena (solo modo Editor)
-                Debug.DrawLine(rayo.origin, hit.point, Color.green, 1f);
+                hoveredCell = cell;
+                if (hoveredCell != selectedCell)
+                {
+                    hoveredCell.Highlight(true);
+                }
             }
-            else
+        }
+        else
+        {
+            if (hoveredCell != null && hoveredCell != selectedCell)
             {
-                Debug.Log("El rayo no impactó con nada.");
+                hoveredCell.Highlight(false);
+                hoveredCell = null;
             }
+        }
+    }
+
+    private void HandleMouseClick()
+    {
+        if (Input.GetMouseButtonDown(0)) // Click izquierdo
+        {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit))
+            {
+                HexCell clickedCell = hit.collider.GetComponent<HexCell>();
+                if (clickedCell != null)
+                {
+                    OnCellClicked(clickedCell);
+                }
+            }
+        }
+    }
+
+    private void OnCellClicked(HexCell cell)
+    {
+        // Limpiar resaltado de selección anterior
+        if (selectedCell != null)
+        {
+            selectedCell.Highlight(false);
+        }
+
+        selectedCell = cell;
+        selectedCell.Highlight(true);
+
+        // Notificar al GameManager sobre la selección de celda
+        if (gameManager != null)
+        {
+            gameManager.OnCellSelected(cell);
+        }
+    }
+
+    public HexCell GetSelectedCell()
+    {
+        return selectedCell;
+    }
+
+    public void ClearSelection()
+    {
+        if (selectedCell != null)
+        {
+            selectedCell.Highlight(false);
+            selectedCell = null;
         }
     }
 }

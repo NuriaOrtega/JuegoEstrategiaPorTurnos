@@ -6,15 +6,15 @@ public class Pathfinding : MonoBehaviour
 {
     public GameObject gridManager;
 
-    public List<HexTileInfo> FindPath(HexTileInfo startTile, HexTileInfo targetTile)
+    public List<HexCell> FindPath(HexCell startTile, HexCell targetTile)
     {
         if (startTile == null || targetTile == null)
         {
             Debug.LogWarning("Pathfinder: Start o Target es nulo.");
         }
 
-        List<HexTileInfo> openSet = new();
-        HashSet<HexTileInfo> closedSet = new();
+        List<HexCell> openSet = new();
+        HashSet<HexCell> closedSet = new();
 
         openSet.Add(startTile);
         startTile.gCost = 0;
@@ -23,7 +23,7 @@ public class Pathfinding : MonoBehaviour
 
         while (openSet.Count > 0)
         {
-            HexTileInfo current = openSet[0];
+            HexCell current = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
                 if (openSet[i].fCost < current.fCost || (openSet[i].fCost == current.fCost && openSet[i].hCost < current.hCost))
@@ -40,7 +40,7 @@ public class Pathfinding : MonoBehaviour
                 return RetracePath(startTile, targetTile);
             }
 
-            foreach (HexTileInfo neighbor in current.neighbors)
+            foreach (HexCell neighbor in current.neighbors)
             {
                 if (!neighbor.isWalkable || closedSet.Contains(neighbor)) continue;
 
@@ -59,7 +59,7 @@ public class Pathfinding : MonoBehaviour
         Debug.LogWarning("Pathfinder: No se encontró camino.");
         return null;
     }
-    float GetTerrainCost(HexTileInfo tile)
+    float GetTerrainCost(HexCell tile)
     {
         switch (tile.terrainType)
         {
@@ -71,17 +71,17 @@ public class Pathfinding : MonoBehaviour
         }
     }
 
-    float Heuristic(HexTileInfo a, HexTileInfo b)
+    float Heuristic(HexCell a, HexCell b)
     {
         int dx = Mathf.Abs(a.gridPosition.x - b.gridPosition.x);
         int dy = Mathf.Abs(a.gridPosition.y - b.gridPosition.y);
         return Mathf.Max(dx, dy);
     }
 
-    List<HexTileInfo> RetracePath(HexTileInfo start, HexTileInfo end)
+    List<HexCell> RetracePath(HexCell start, HexCell end)
     {
-        List<HexTileInfo> path = new();
-        HexTileInfo current = end;
+        List<HexCell> path = new();
+        HexCell current = end;
 
         while (current != start)
         {

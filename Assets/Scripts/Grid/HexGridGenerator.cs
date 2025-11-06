@@ -1,6 +1,7 @@
 using UnityEngine;
 
-public class HexGridGenerator : MonoBehaviour
+
+public class HexGrid : MonoBehaviour
 {
     [Header("Configuración de la cuadrícula")]
     public int gridWidth = 10;
@@ -14,13 +15,13 @@ public class HexGridGenerator : MonoBehaviour
     void Start()
     {
         GenerateHexGrid();
+        
     }
 
-    // Update is called once per frame
     void GenerateHexGrid()
     {
         if(hexPrefab == null) {
-            Debug.LogError("HexGridGenerator: falta asignar hexPrefb.");
+            Debug.LogError("HexGrid: falta asignar hexPrefb.");
             return;
         }
 
@@ -40,7 +41,7 @@ public class HexGridGenerator : MonoBehaviour
                 GameObject hexGO = Instantiate(hexPrefab, spawnPos, rotation, transform);
                 hexGO.name = $"Hex_{col}_{row}";
 
-                HexTileInfo info = hexGO.GetComponent<HexTileInfo>();
+                HexCell info = hexGO.GetComponent<HexCell>();
                 if (info != null) {
                     info.gridPosition.x = col;
                     info.gridPosition.y = row;
