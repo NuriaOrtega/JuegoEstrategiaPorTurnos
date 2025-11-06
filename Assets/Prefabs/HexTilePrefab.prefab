@@ -70,30 +70,16 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ffaafeac074649741895f5d2b676a48f, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2532464394278472976}
+      addedObject: {fileID: 4992577275535032313}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ffaafeac074649741895f5d2b676a48f, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4992577275535032313}
+      addedObject: {fileID: 8486268078738359821}
   m_SourcePrefab: {fileID: 100100000, guid: ffaafeac074649741895f5d2b676a48f, type: 3}
 --- !u!1 &175231307519636854 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ffaafeac074649741895f5d2b676a48f, type: 3}
   m_PrefabInstance: {fileID: 1058313081604605991}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2532464394278472976
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 175231307519636854}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d678f89d7b254144eb9f202f25a2d7b2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  q: 0
-  r: 0
 --- !u!64 &4992577275535032313
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -116,3 +102,24 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2124705421725058983, guid: ffaafeac074649741895f5d2b676a48f, type: 3}
+--- !u!114 &8486268078738359821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 175231307519636854}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98da4ebebcce98841bde113cd2218c89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gridPosition: {x: 0, y: 0}
+  terrainType: 0
+  movementCost: 0
+  defensiveBonus: 0
+  isWalkable: 0
+  neighbors: []
+  gCost: 0
+  hCost: 0
+  parent: {fileID: 0}

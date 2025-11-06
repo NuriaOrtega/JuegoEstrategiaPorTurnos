@@ -1,7 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-
+/// <summary>
+/// Tipos de terreno disponibles en el mapa hexagonal.
+/// </summary>
 public enum TerrainType
 {
     Llanura,
@@ -10,7 +12,9 @@ public enum TerrainType
     Agua
 }
 
-
+/// <summary>
+/// Representa una celda hexagonal individual con propiedades de terreno y pathfinding.
+/// </summary>
 public class HexCell : MonoBehaviour
 {
     public Vector2Int gridPosition;
@@ -38,7 +42,9 @@ public class HexCell : MonoBehaviour
         }
     }
 
-
+    /// <summary>
+    /// Resalta o quita el resaltado de la celda cambiando su color.
+    /// </summary>
     public void Highlight(bool highlight)
     {
         if (hexRenderer == null) return;
