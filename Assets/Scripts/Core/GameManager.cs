@@ -1,19 +1,14 @@
 using UnityEngine;
 
-
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [Header("Referencias")]
-    [SerializeField] private HexGrid hexGrid;
-
     [Header("Estado del Juego")]
-    public int currentPlayerTurn = 0; 
+    public int currentPlayerTurn = 0; // 0 = Jugador, 1 = IA
 
     void Awake()
     {
-
         if (Instance == null)
         {
             Instance = this;
@@ -22,12 +17,6 @@ public class GameManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
-    }
-
-    void Start()
-    {
-        if (hexGrid == null)
-            hexGrid = FindObjectOfType<HexGrid>();
     }
 
     public void OnCellSelected(HexCell cell)
@@ -42,6 +31,7 @@ public class GameManager : MonoBehaviour
         // - Manejar comandos de movimiento/ataque
     }
 
+  
     public void EndTurn()
     {
         currentPlayerTurn = (currentPlayerTurn + 1) % 2;
