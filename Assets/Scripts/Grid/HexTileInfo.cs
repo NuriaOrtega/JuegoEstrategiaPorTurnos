@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
-
+using Unity.VisualScripting;
 
 public enum TerrainType
 {
@@ -15,15 +15,11 @@ public class HexCell : MonoBehaviour
 {
     public Vector2Int gridPosition;
     public TerrainType terrainType;
-    public float movementCost;
-    public float defensiveBonus;
-    public bool isWalkable;
-    public List<HexCell> neighbors = new();
+    public Unit occupyingUnit;
+    public int OwnerPlayerID = -1; // -1 = neutral, 0/1 = jugador
+    public bool isBase;
 
-    [HideInInspector] public float gCost; // Coste desde al inicio
-    [HideInInspector] public float hCost; // Coste heurístico al objetivo
-    public float fCost => gCost + hCost;
-    [HideInInspector] public HexCell parent;
+    public List<HexCell> neighbors = new();
 
     private Renderer hexRenderer;
     private Color originalColor;
@@ -53,5 +49,28 @@ public class HexCell : MonoBehaviour
         {
             hexRenderer.material.color = originalColor;
         }
+    }
+
+    public bool IsOccupied()
+    {
+        return occupyingUnit != null;
+    }
+
+    public bool IsPassable()
+    {
+        return terrainType != TerrainType.Agua && !IsOccupied();
+    }
+
+    public bool IsPassableForPlayer(int playerID)
+    {
+        if (terrainType == TerrainType.Agua) return false;
+
+        //Las bases amigas son impasables pero las enemigas son pasables (para ser capturadas)
+        if (isBase && OwnerPlayerID == playerID) return false;
+
+        //Las celdas normales ocupadas son impasables
+        if (IsOccupied()) return false;
+
+        return true;
     }
 }
