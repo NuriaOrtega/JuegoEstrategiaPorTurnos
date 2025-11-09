@@ -2,15 +2,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 
-public enum TerrainType
-{
-    Llanura,
-    Bosque,
-    Montaña,
-    Agua
-}
-
-
 public class HexCell : MonoBehaviour
 {
     public Vector2Int gridPosition;
@@ -33,7 +24,6 @@ public class HexCell : MonoBehaviour
             originalColor = hexRenderer.material.color;
         }
     }
-
 
     public void Highlight(bool highlight)
     {
@@ -72,5 +62,10 @@ public class HexCell : MonoBehaviour
         if (IsOccupied()) return false;
 
         return true;
+    }
+
+    public float GetMovementCost()
+    {
+        return terrainType.GetMovementCost();
     }
 }

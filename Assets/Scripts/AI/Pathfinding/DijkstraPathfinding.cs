@@ -59,8 +59,7 @@ public class DijkstraPathfinding : MonoBehaviour
                 if (unit != null && (!vecino.IsPassableForPlayer(unit.OwnerPlayerID))) continue;
 
                 //Calcular el coste al vecino
-                float movementCost = GetMovementCost(nodoActual.cell, vecino, unit);
-                float nuevoCoste = nodoActual.gCost + movementCost;
+                float nuevoCoste = nodoActual.gCost + vecino.GetMovementCost();
 
                 //Comprobar si este camino es mejor
                 PathNode existingNode = openSet.Find(n => n.cell == vecino); //?
@@ -95,5 +94,6 @@ public class DijkstraPathfinding : MonoBehaviour
         return menor;
     }
 
-    private float GetMovementCost
+    //Función ConstructPath
+
 }
