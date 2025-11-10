@@ -16,12 +16,16 @@ public class HexCell : MonoBehaviour
     private Color originalColor;
     private bool isHighlighted = false;
 
-    void Awake()
+    public void Initialize(Vector2Int coordinates, TerrainType terrain)
     {
+        gridPosition = coordinates;
+        terrainType = terrain;
+
         hexRenderer = GetComponent<Renderer>();
         if (hexRenderer != null)
         {
-            originalColor = hexRenderer.material.color;
+            originalColor = terrainType.GetTerrainColor();
+            hexRenderer.material.color = originalColor;
         }
     }
 

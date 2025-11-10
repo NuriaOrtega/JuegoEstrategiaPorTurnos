@@ -29,8 +29,8 @@ public class DijkstraPathfinding : MonoBehaviour
 
         if (inicio == fin) return new List<HexCell> { inicio };
 
-        List<PathNode> openSet = new; //Nodos que aún quedan por explorar
-        HashSet<HexCell> closedSet = new; //Celdas ya visitadas
+        List<PathNode> openSet = new List<PathNode>(); //Nodos que aún quedan por explorar
+        HashSet<HexCell> closedSet = new HashSet<HexCell>(); //Celdas ya visitadas
 
         PathNode nodoInicial = new PathNode(inicio, null, 0);
         openSet.Add(nodoInicial);
@@ -46,11 +46,10 @@ public class DijkstraPathfinding : MonoBehaviour
                 return ConstructPath(nodoActual);
             }
 
-
             openSet.Remove(nodoActual);         //Elimina el nodo de la lista de nodos candidatos 
             closedSet.Add(nodoActual.cell);     //Añade el nodo al set de nodos que forman parte del camino definitivo
 
-            List<HexCell> vecinos = hexGrid.GetNeighbors(nodoActual.cell.gridPosition); //Vecinos del nodo seleccionado
+            List<HexCell> vecinos = nodoActual.cell.neighbors; //Vecinos del nodo seleccionado
 
             foreach (HexCell vecino in vecinos)
             {
@@ -94,6 +93,18 @@ public class DijkstraPathfinding : MonoBehaviour
         return menor;
     }
 
-    //Función ConstructPath
+    private List<HexCell> ConstructPath(PathNode nodoFinal)
+    {
+        List<HexCell> camino = new List<HexCell>();
+        PathNode nodoActual = nodoFinal;
 
+        while (nodoActual != null)
+        {
+            camino.Add(nodoActual.cell);
+            nodoActual = nodoActual.parent;
+        }
+
+        camino.Reverse();
+        return camino;
+    }
 }

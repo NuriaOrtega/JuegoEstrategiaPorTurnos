@@ -6,7 +6,7 @@ public class HexGrid : MonoBehaviour
     [Header("Configuración de la cuadrícula")]
     public int gridWidth = 10;
     public int gridHeight = 8;
-    public GameObject hexPrefab;
+    public GameObject hexCellPrefab;
 
     [Header("Tamaño real del hexágono (unidades)")]
     public float hexWidth = 0.96f;
@@ -15,12 +15,11 @@ public class HexGrid : MonoBehaviour
     void Start()
     {
         GenerateHexGrid();
-        
     }
 
     void GenerateHexGrid()
     {
-        if(hexPrefab == null) {
+        if(hexCellPrefab == null) {
             Debug.LogError("HexGrid: falta asignar hexPrefb.");
             return;
         }
@@ -38,7 +37,7 @@ public class HexGrid : MonoBehaviour
                 Vector3 spawnPos = new(xPos, 0f, zPos);
 
                 Quaternion rotation = Quaternion.Euler(90f, 0f, 30f);
-                GameObject hexGO = Instantiate(hexPrefab, spawnPos, rotation, transform);
+                GameObject hexGO = Instantiate(hexCellPrefab, spawnPos, rotation, transform);
                 hexGO.name = $"Hex_{col}_{row}";
 
                 HexCell info = hexGO.GetComponent<HexCell>();

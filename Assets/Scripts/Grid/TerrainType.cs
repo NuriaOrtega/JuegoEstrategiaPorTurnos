@@ -21,4 +21,16 @@ public static class TerrainTypeExtensions
             _ => 1.0f
         };
     }
+
+    public static Color GetTerrainColor(this TerrainType terrain)
+    {
+        return terrain switch
+        {
+            TerrainType.Llanura => new Color(0.8f, 0.9f, 0.6f),
+            TerrainType.Bosque => new Color(0.2f, 0.6f, 0.2f),
+            TerrainType.Montaña => new Color(0.5f, 0.5f, 0.5f),
+            TerrainType.Agua => new Color(0.3f, 0.5f, 0.9f),
+            _ => Color.white
+        };
+    }
 }
