@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Maneja la entrada del ratón para selección e interacción con celdas.
 /// </summary>
-public class InputManager : MonoBehaviour
+public class MouseInput : MonoBehaviour
 {
     [SerializeField] private HexGrid hexGrid;
     [SerializeField] private GameManager gameManager;

@@ -42,8 +42,11 @@ public class HexGrid : MonoBehaviour
 
                 HexCell info = hexGO.GetComponent<HexCell>();
                 if (info != null) {
-                    info.gridPosition.x = col;
-                    info.gridPosition.y = row;
+                    
+                    TerrainType terrain = TerrainType.Llanura;
+
+                    
+                    info.Initialize(new Vector2Int(col, row), terrain);
                 }
             }
         }
