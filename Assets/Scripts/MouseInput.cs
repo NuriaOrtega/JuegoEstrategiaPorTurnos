@@ -1,16 +1,14 @@
 using UnityEngine;
 
-/// <summary>
-/// Maneja la entrada del ratón para selección e interacción con celdas.
-/// </summary>
+
 public class MouseInput : MonoBehaviour
 {
     [SerializeField] private HexGrid hexGrid;
     [SerializeField] private GameManager gameManager;
 
     private Camera mainCamera;
-    private HexCell selectedCell;
     private HexCell hoveredCell;
+    private HexCell pressedCell;
 
     void Start()
     {
@@ -31,6 +29,9 @@ public class MouseInput : MonoBehaviour
 
     private void HandleMouseHover()
     {
+        if (pressedCell != null)
+            return;
+
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
@@ -39,21 +40,18 @@ public class MouseInput : MonoBehaviour
             HexCell cell = hit.collider.GetComponent<HexCell>();
             if (cell != null && cell != hoveredCell)
             {
-                if (hoveredCell != null && hoveredCell != selectedCell)
+                if (hoveredCell != null)
                 {
                     hoveredCell.Highlight(false);
                 }
 
                 hoveredCell = cell;
-                if (hoveredCell != selectedCell)
-                {
-                    hoveredCell.Highlight(true);
-                }
+                hoveredCell.Highlight(true, isHover: true);
             }
         }
         else
         {
-            if (hoveredCell != null && hoveredCell != selectedCell)
+            if (hoveredCell != null)
             {
                 hoveredCell.Highlight(false);
                 hoveredCell = null;
@@ -63,7 +61,7 @@ public class MouseInput : MonoBehaviour
 
     private void HandleMouseClick()
     {
-        if (Input.GetMouseButtonDown(0)) // Click izquierdo
+        if (Input.GetMouseButtonDown(0))
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
@@ -73,41 +71,54 @@ public class MouseInput : MonoBehaviour
                 HexCell clickedCell = hit.collider.GetComponent<HexCell>();
                 if (clickedCell != null)
                 {
-                    OnCellClicked(clickedCell);
+                    OnCellPressed(clickedCell);
                 }
+            }
+        }
+
+        // Mouse button released
+        if (Input.GetMouseButtonUp(0))
+        {
+            if (pressedCell != null)
+            {
+                OnCellReleased(pressedCell);
             }
         }
     }
 
-    private void OnCellClicked(HexCell cell)
+    private void OnCellPressed(HexCell cell)
     {
-        // Limpiar resaltado de selección anterior
-        if (selectedCell != null)
+        if (hoveredCell == cell)
         {
-            selectedCell.Highlight(false);
+            hoveredCell.Highlight(false);
         }
 
-        selectedCell = cell;
-        selectedCell.Highlight(true);
+        pressedCell = cell;
+        pressedCell.Highlight(true, isHover: false);
+    }
 
-        // Notificar al GameManager sobre la selección de celda
+    private void OnCellReleased(HexCell cell)
+    {
+        cell.Highlight(false);
+
         if (gameManager != null)
         {
             gameManager.OnCellSelected(cell);
         }
-    }
 
-    public HexCell GetSelectedCell()
-    {
-        return selectedCell;
-    }
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
 
-    public void ClearSelection()
-    {
-        if (selectedCell != null)
+        if (Physics.Raycast(ray, out hit))
         {
-            selectedCell.Highlight(false);
-            selectedCell = null;
+            HexCell currentCell = hit.collider.GetComponent<HexCell>();
+            if (currentCell == cell)
+            {
+                hoveredCell = cell;
+                hoveredCell.Highlight(true, isHover: true);
+            }
         }
+
+        pressedCell = null;
     }
 }

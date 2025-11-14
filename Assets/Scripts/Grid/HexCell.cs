@@ -9,6 +9,8 @@ public class HexCell : MonoBehaviour
     public Unit occupyingUnit;
     public int OwnerPlayerID = -1; // -1 = neutral, 0/1 = jugador
     public bool isBase;
+    public bool isResourceNode;
+    public bool resourceCollected;
 
     public List<HexCell> neighbors = new();
 
@@ -29,7 +31,15 @@ public class HexCell : MonoBehaviour
         }
     }
 
-    public void Highlight(bool highlight)
+    public void UpdateOriginalColor()
+    {
+        if (hexRenderer != null)
+        {
+            originalColor = hexRenderer.material.color;
+        }
+    }
+
+    public void Highlight(bool highlight, bool isHover = false)
     {
         if (hexRenderer == null) return;
 
@@ -37,7 +47,14 @@ public class HexCell : MonoBehaviour
 
         if (highlight)
         {
-            hexRenderer.material.color = Color.yellow;
+            if (isHover)
+            {
+                hexRenderer.material.color = originalColor * 0.7f;
+            }
+            else
+            {
+                hexRenderer.material.color = Color.yellow;
+            }
         }
         else
         {

@@ -13,7 +13,7 @@ public class DijkstraPathfinding : MonoBehaviour
         {
             this.cell = cell;
             this.parent = parent;
-            this.gCost = gCost; //Coste acumulado
+            this.gCost = gCost;
         }
     }
 
@@ -29,46 +29,42 @@ public class DijkstraPathfinding : MonoBehaviour
 
         if (inicio == fin) return new List<HexCell> { inicio };
 
-        List<PathNode> openSet = new List<PathNode>(); //Nodos que aún quedan por explorar
-        HashSet<HexCell> closedSet = new HashSet<HexCell>(); //Celdas ya visitadas
+        List<PathNode> openSet = new List<PathNode>();
+        HashSet<HexCell> closedSet = new HashSet<HexCell>();
 
         PathNode nodoInicial = new PathNode(inicio, null, 0);
         openSet.Add(nodoInicial);
 
         while (openSet.Count > 0)
         {
-            // Obtener nodo de menor coste
             PathNode nodoActual = GetLowestCostNode(openSet);
 
-            //Comprobar si se ha alcanzado el nodo fin
             if (nodoActual.cell == fin)
             {
                 return ConstructPath(nodoActual);
             }
 
-            openSet.Remove(nodoActual);         //Elimina el nodo de la lista de nodos candidatos 
-            closedSet.Add(nodoActual.cell);     //Añade el nodo al set de nodos que forman parte del camino definitivo
+            openSet.Remove(nodoActual);
+            closedSet.Add(nodoActual.cell);
 
-            List<HexCell> vecinos = nodoActual.cell.neighbors; //Vecinos del nodo seleccionado
+            List<HexCell> vecinos = nodoActual.cell.neighbors;
 
             foreach (HexCell vecino in vecinos)
             {
-                if (closedSet.Contains(vecino)) continue; //Si el nodo ya está en el conjunto de candidatos no se vuelve a añadir
+                if (closedSet.Contains(vecino)) continue;
 
                 if (unit != null && (!vecino.IsPassableForPlayer(unit.OwnerPlayerID))) continue;
 
-                //Calcular el coste al vecino
                 float nuevoCoste = nodoActual.gCost + vecino.GetMovementCost();
 
-                //Comprobar si este camino es mejor
-                PathNode existingNode = openSet.Find(n => n.cell == vecino); //?
+                PathNode existingNode = openSet.Find(n => n.cell == vecino);
 
-                if (existingNode == null) //Si no estaba entre los nodos candidatos se añade
+                if (existingNode == null)
                 {
                     PathNode nuevoNodo = new PathNode(vecino, nodoActual, nuevoCoste);
                     openSet.Add(nuevoNodo);
                 }
-                else if (nuevoCoste < existingNode.gCost) //Si el nodo se que estaba entre los candidatos pero se ha encontrado un mejor camino se actualiza 
+                else if (nuevoCoste < existingNode.gCost)
                 {
                     existingNode.gCost = nuevoCoste;
                     existingNode.parent = nodoActual;
@@ -76,7 +72,6 @@ public class DijkstraPathfinding : MonoBehaviour
             }
         }
 
-        //No se ha encontrado ruta
         return null;
     }
 
