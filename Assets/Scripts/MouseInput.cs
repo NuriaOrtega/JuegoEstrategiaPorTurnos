@@ -69,9 +69,11 @@ public class MouseInput : MonoBehaviour
             if (Physics.Raycast(ray, out hit))
             {
                 HexCell clickedCell = hit.collider.GetComponent<HexCell>();
-                if (clickedCell != null)
+                if (clickedCell != null) OnCellPressed(clickedCell);
+                else
                 {
-                    OnCellPressed(clickedCell);
+                    clickedCell = hit.collider.GetComponent<Unit>().CurrentCell;
+                    if (clickedCell != null) OnCellPressed(clickedCell);
                 }
             }
         }

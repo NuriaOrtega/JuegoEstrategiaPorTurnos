@@ -11,6 +11,7 @@ public class UIManager : MonoBehaviour
     [Header("UI Elements")]
     [SerializeField] private TextMeshProUGUI turnText;
     [SerializeField] private TextMeshProUGUI resourcesText;
+    [SerializeField] private GameObject unitSelectedInfo;
 
     void Start()
     {
@@ -43,6 +44,23 @@ public class UIManager : MonoBehaviour
             int resources = gameManager.resourcesPerPlayer[currentPlayer];
             resourcesText.text = $"Recursos: {resources}";
         }
+
+        if (unitSelectedInfo != null)
+        {
+            if (gameManager.AUnitIsSelected()) UpdateUnitInfo(gameManager.selectedUnit);
+            else unitSelectedInfo.SetActive(false);
+        }
+    }
+
+    private void UpdateUnitInfo(Unit unidad)
+    {
+        unitSelectedInfo.SetActive(true);
+
+        TextMeshProUGUI propertyText = unitSelectedInfo.transform.Find("PropertyText").GetComponent<TextMeshProUGUI>();
+        if (unidad.OwnerPlayerID == 0) propertyText.text = $"Unidad aliada";
+        else propertyText.text = $"Unidad enemiga";
+
+        
     }
 
     public void ProduceInfantry()

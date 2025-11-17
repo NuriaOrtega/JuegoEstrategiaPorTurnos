@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
     private StrategicManager strategicManager;
 
     [Header("Estado de Selección")]
-    private Unit selectedUnit;
+    public Unit selectedUnit;
 
     void Awake()
     {
@@ -59,6 +59,7 @@ public class GameManager : MonoBehaviour
         allUnits.AddRange(player1Units);
         return allUnits;
     }
+    
     public Unit SpawnUnit(UnitType type, HexCell spawnCell, int playerID)
     {
         if (spawnCell == null)
@@ -72,6 +73,7 @@ public class GameManager : MonoBehaviour
             Debug.LogError($"Cannot spawn unit at {spawnCell.gridPosition}: cell is occupied");
             return null;
         }
+
         HardcodedUnitStats stats = GetStatsForType(type);
         if (resourcesPerPlayer[playerID] < stats.cost)
         {
@@ -167,7 +169,7 @@ public class GameManager : MonoBehaviour
     public void OnCellSelected(HexCell cell)
     {
         if (cell == null) return;
-        if (currentPlayerTurn != 0) return; 
+        if (currentPlayerTurn != 0) return;
 
         Debug.Log($"Celda seleccionada en posición: {cell.gridPosition}");
 
@@ -193,6 +195,11 @@ public class GameManager : MonoBehaviour
 
             selectedUnit = null;
         }
+    }
+    
+    public bool AUnitIsSelected ()
+    {
+        return selectedUnit != null;
     }
     public void EndTurn()
     {
