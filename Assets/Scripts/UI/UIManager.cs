@@ -56,11 +56,45 @@ public class UIManager : MonoBehaviour
     {
         unitSelectedInfo.SetActive(true);
 
-        TextMeshProUGUI propertyText = unitSelectedInfo.transform.Find("PropertyText").GetComponent<TextMeshProUGUI>();
-        if (unidad.OwnerPlayerID == 0) propertyText.text = $"Unidad aliada";
-        else propertyText.text = $"Unidad enemiga";
+        TextMeshProUGUI propietarioText = unitSelectedInfo.transform.Find("PropertyText").GetComponent<TextMeshProUGUI>();
+        if (unidad.OwnerPlayerID == 0) propietarioText.text = $"Unidad aliada";
+        else propietarioText.text = $"Unidad enemiga";
 
-        
+        TextMeshProUGUI tipoText = unitSelectedInfo.transform.Find("TypeText").GetComponent<TextMeshProUGUI>();
+        switch (unidad.unitType)
+        {
+            case UnitType.Infantry:
+                tipoText.text = $"Tipo: Infantería";
+                break;
+            case UnitType.Cavalry:
+                tipoText.text = $"Tipo: Caballería";
+                break;
+            case UnitType.Artillery:
+                tipoText.text = $"Tipo: Artillería";
+                break;
+            default:
+                tipoText.text = $"Tipo: Infantería";
+                break;
+        }
+
+        TextMeshProUGUI vidaText = unitSelectedInfo.transform.Find("HealthText").GetComponent<TextMeshProUGUI>();
+        vidaText.text = $"Vida: {unidad.currentHealth}/{unidad.maxHealth}";
+
+        TextMeshProUGUI movimientoText = unitSelectedInfo.transform.Find("MovementText").GetComponent<TextMeshProUGUI>();
+        movimientoText.text = $"Movimientos disponibles: {unidad.remainingMovement}/{unidad.movementPoints}";
+
+        TextMeshProUGUI posicionText = unitSelectedInfo.transform.Find("PositionText").GetComponent<TextMeshProUGUI>();
+        posicionText.text = $"Ubicación: Celda ({unidad.CurrentCell.gridPosition.x},{unidad.CurrentCell.gridPosition.y})";
+    
+        TextMeshProUGUI poderDeAtaqueText = unitSelectedInfo.transform.Find("AttackPowerText").GetComponent<TextMeshProUGUI>();
+        poderDeAtaqueText.text = $"Poder de ataque: {unidad.attackPower}";
+    
+        TextMeshProUGUI rangoDeAtaqueText = unitSelectedInfo.transform.Find("AttackRangeText").GetComponent<TextMeshProUGUI>();
+        rangoDeAtaqueText.text = $"Rango de ataque: {unidad.attackRange}";
+    
+        TextMeshProUGUI haAtacadoText = unitSelectedInfo.transform.Find("HasAttackedText").GetComponent<TextMeshProUGUI>();
+        if(unidad.hasAttacked) haAtacadoText.text = $"La unidad ya ha atacado";
+        else haAtacadoText.text = $"La unidad todavía no ha atacado";
     }
 
     public void ProduceInfantry()
