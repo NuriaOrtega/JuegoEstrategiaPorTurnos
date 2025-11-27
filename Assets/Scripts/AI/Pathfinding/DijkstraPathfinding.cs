@@ -4,7 +4,7 @@ using Unity.VisualScripting;
 
 public class DijkstraPathfinding : MonoBehaviour
 {
-    private class PathNode
+    public class PathNode
     {
         public HexCell cell;
         public PathNode parent;
@@ -18,40 +18,35 @@ public class DijkstraPathfinding : MonoBehaviour
     }
 
     private HexGrid hexGrid;
+    private Dictionary<HexCell, PathNode> movementMap = new Dictionary<HexCell, PathNode>();
+    private List<HexCell> cellsOnAttackRange = new List<HexCell>();
+    private List<HexCell> cellsOnMovementRange = new List<HexCell>();
     public DijkstraPathfinding(HexGrid grid)
     {
         hexGrid = grid;
     }
 
-    public List<HexCell> FindPath(HexCell inicio, HexCell fin, Unit unit = null)
+    public void CreateMap(Unit unit = null) //Guarda en el diccionario de la clase una entrada por cada nodo y el coste desde el origen hasta él
     {
-        if (inicio == null || fin == null) return null;
-
-        if (inicio == fin) return new List<HexCell> { inicio };
+        ClearPathfinding();
 
         List<PathNode> openSet = new List<PathNode>();
-        HashSet<HexCell> closedSet = new HashSet<HexCell>();
 
-        PathNode nodoInicial = new PathNode(inicio, null, 0);
+        PathNode nodoInicial = new PathNode(unit.CurrentCell, null, 0);
         openSet.Add(nodoInicial);
 
         while (openSet.Count > 0)
         {
             PathNode nodoActual = GetLowestCostNode(openSet);
 
-            if (nodoActual.cell == fin)
-            {
-                return ConstructPath(nodoActual);
-            }
-
             openSet.Remove(nodoActual);
-            closedSet.Add(nodoActual.cell);
+            movementMap.Add(nodoActual.cell, nodoActual);
 
             List<HexCell> vecinos = nodoActual.cell.neighbors;
 
             foreach (HexCell vecino in vecinos)
             {
-                if (closedSet.Contains(vecino)) continue;
+                if (movementMap.ContainsKey(vecino)) continue;
 
                 if (unit != null && (!vecino.IsPassableForPlayer(unit.OwnerPlayerID))) continue;
 
@@ -59,12 +54,12 @@ public class DijkstraPathfinding : MonoBehaviour
 
                 PathNode existingNode = openSet.Find(n => n.cell == vecino);
 
-                if (existingNode == null)
+                if (existingNode == null) //Si el nodo no estaba en la OpenSet de añade
                 {
                     PathNode nuevoNodo = new PathNode(vecino, nodoActual, nuevoCoste);
                     openSet.Add(nuevoNodo);
                 }
-                else if (nuevoCoste < existingNode.gCost)
+                else if (nuevoCoste < existingNode.gCost) //Si si estaba pero el coste es mejor, se reestablece
                 {
                     existingNode.gCost = nuevoCoste;
                     existingNode.parent = nodoActual;
@@ -72,10 +67,10 @@ public class DijkstraPathfinding : MonoBehaviour
             }
         }
 
-        return null;
+        CreateLists(unit);
     }
 
-    private PathNode GetLowestCostNode(List<PathNode> nodos)
+    private PathNode GetLowestCostNode(List<PathNode> nodos) //Obtiene el nodo con mínimo coste de una lista de nodos
     {
         PathNode menor = nodos[0];
         for (int i = 1; i < nodos.Count; i++)
@@ -88,10 +83,10 @@ public class DijkstraPathfinding : MonoBehaviour
         return menor;
     }
 
-    private List<HexCell> ConstructPath(PathNode nodoFinal)
+    public List<HexCell> ConstructPath(HexCell nodoFinal)
     {
         List<HexCell> camino = new List<HexCell>();
-        PathNode nodoActual = nodoFinal;
+        PathNode nodoActual = movementMap[nodoFinal];
 
         while (nodoActual != null)
         {
@@ -102,4 +97,39 @@ public class DijkstraPathfinding : MonoBehaviour
         camino.Reverse();
         return camino;
     }
+
+    private void CreateLists(Unit unit = null)
+    {
+
+        if (unit == null || movementMap.Count == 0) return;
+
+        int distanciaAtaque = unit.attackRange;
+        int distanciaDesplazamiento = unit.remainingMovement;
+        
+        foreach (KeyValuePair<HexCell, PathNode> entrada in movementMap)
+        {
+            HexCell hexCell = entrada.Key;
+            PathNode nodo = entrada.Value;
+
+            // Si la celda esta en rango de ataque y en la celda hay una unidad enemiga --> añadir a la lista
+            if (nodo.gCost <= distanciaAtaque && hexCell.IsOccupied() && hexCell.occupyingUnit.OwnerPlayerID != unit.OwnerPlayerID) cellsOnAttackRange.Add(hexCell);
+
+            // Si la celda esta en rango de desplazamiento --> ñadir a la lista
+            if (nodo.gCost <= distanciaDesplazamiento) cellsOnMovementRange.Add(hexCell);
+        }
+    }
+
+    private void ClearPathfinding()
+    {
+        movementMap.Clear();
+        cellsOnAttackRange.Clear();
+        cellsOnMovementRange.Clear();
+    }
+
+    public (List<HexCell>, List<HexCell>) GetCellsOnRange()
+    {
+        return (cellsOnAttackRange, cellsOnMovementRange);
+    }
 }
+
+

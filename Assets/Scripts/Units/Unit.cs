@@ -60,7 +60,7 @@ public class Unit : MonoBehaviour
         }
     }
 
-    public bool MoveToCell(HexCell targetCell, HexGrid hexGrid)
+    public bool MoveToCell(HexCell targetCell, DijkstraPathfinding pathfinding)
     {
         if (targetCell == null || targetCell == CurrentCell)
             return false;
@@ -71,8 +71,7 @@ public class Unit : MonoBehaviour
             return false;
         }
 
-        DijkstraPathfinding pathfinding = new DijkstraPathfinding(hexGrid);
-        var path = pathfinding.FindPath(CurrentCell, targetCell, this);
+        var path = pathfinding.ConstructPath(targetCell);
 
         if (path == null || path.Count == 0)
         {

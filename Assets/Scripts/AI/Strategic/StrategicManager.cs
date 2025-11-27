@@ -21,6 +21,7 @@ public class StrategicManager : MonoBehaviour
 
     private List<Unit> friendlyUnits;
     private List<Unit> enemyUnits;
+    private DijkstraPathfinding aiPathfinding;
 
     void Start()
     {
@@ -28,6 +29,7 @@ public class StrategicManager : MonoBehaviour
         hexGrid = FindObjectOfType<HexGrid>();
         influenceMap = FindObjectOfType<InfluenceMap>();
         tacticalWaypoints = FindObjectOfType<TacticalWaypoints>();
+        aiPathfinding = new DijkstraPathfinding(hexGrid);
 
         if (gameManager == null || hexGrid == null)
         {
@@ -247,6 +249,7 @@ public class StrategicManager : MonoBehaviour
     {
         foreach (Unit unit in friendlyUnits)
         {
+            aiPathfinding.CreateMap(unit);
             ExecuteUnitOrder(unit);
         }
     }
@@ -292,7 +295,7 @@ public class StrategicManager : MonoBehaviour
         Waypoint attackWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.Attack);
         if (attackWaypoint != null && unit.remainingMovement > 0)
         {
-            unit.MoveToCell(attackWaypoint.cell, hexGrid);
+            unit.MoveToCell(attackWaypoint.cell, aiPathfinding);
         }
     }
 
@@ -311,7 +314,7 @@ public class StrategicManager : MonoBehaviour
             int distance = CombatSystem.HexDistance(unit.CurrentCell, defenseWaypoint.cell);
             if (distance > 2)
             {
-                unit.MoveToCell(defenseWaypoint.cell, hexGrid);
+                unit.MoveToCell(defenseWaypoint.cell, aiPathfinding);
             }
         }
     }
@@ -321,7 +324,7 @@ public class StrategicManager : MonoBehaviour
         Waypoint resourceWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Resource);
         if (resourceWaypoint != null && unit.remainingMovement > 0)
         {
-            unit.MoveToCell(resourceWaypoint.cell, hexGrid);
+            unit.MoveToCell(resourceWaypoint.cell, aiPathfinding);
         }
     }
 
@@ -330,7 +333,7 @@ public class StrategicManager : MonoBehaviour
         HexCell safeCell = influenceMap?.FindNearestSafeCell(unit.CurrentCell);
         if (safeCell != null && unit.remainingMovement > 0)
         {
-            unit.MoveToCell(safeCell, hexGrid);
+            unit.MoveToCell(safeCell, aiPathfinding);
         }
     }
 

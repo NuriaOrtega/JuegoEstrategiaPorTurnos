@@ -10,6 +10,7 @@ public class UnitAI : MonoBehaviour
     private InfluenceMap influenceMap;
     private TacticalWaypoints tacticalWaypoints;
     private GameManager gameManager;
+    private DijkstraPathfinding aiPathfinding;
 
     private BTNode behaviorTree;
 
@@ -20,6 +21,7 @@ public class UnitAI : MonoBehaviour
         influenceMap = FindObjectOfType<InfluenceMap>();
         tacticalWaypoints = FindObjectOfType<TacticalWaypoints>();
         gameManager = GameManager.Instance;
+        aiPathfinding = new DijkstraPathfinding(hexGrid);
 
         BuildBehaviorTree();
     }
@@ -125,14 +127,16 @@ public class UnitAI : MonoBehaviour
             }
             else if (distance <= 5 && unit.remainingMovement > 0)
             {
-                return unit.MoveToCell(nearestEnemy.CurrentCell, hexGrid) ? NodeState.Success : NodeState.Failure;
+                aiPathfinding.CreateMap(unit);
+                return unit.MoveToCell(nearestEnemy.CurrentCell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
             }
         }
 
         Waypoint attackWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.Attack);
         if (attackWaypoint != null && unit.remainingMovement > 0)
         {
-            bool moved = unit.MoveToCell(attackWaypoint.cell, hexGrid);
+            aiPathfinding.CreateMap(unit);
+            bool moved = unit.MoveToCell(attackWaypoint.cell, aiPathfinding);
             return moved ? NodeState.Success : NodeState.Failure;
         }
 
@@ -153,7 +157,8 @@ public class UnitAI : MonoBehaviour
 
             if (distance <= 4 && unit.remainingMovement > 0)
             {
-                return unit.MoveToCell(nearestEnemy.CurrentCell, hexGrid) ? NodeState.Success : NodeState.Failure;
+                aiPathfinding.CreateMap(unit);
+                return unit.MoveToCell(nearestEnemy.CurrentCell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
             }
         }
 
@@ -164,7 +169,8 @@ public class UnitAI : MonoBehaviour
 
             if (distance > 2 && unit.remainingMovement > 0)
             {
-                bool moved = unit.MoveToCell(defenseWaypoint.cell, hexGrid);
+                aiPathfinding.CreateMap(unit);
+                bool moved = unit.MoveToCell(defenseWaypoint.cell, aiPathfinding);
                 return moved ? NodeState.Success : NodeState.Failure;
             }
         }
@@ -182,7 +188,8 @@ public class UnitAI : MonoBehaviour
         Waypoint resourceWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Resource);
         if (resourceWaypoint != null && unit.remainingMovement > 0)
         {
-            bool moved = unit.MoveToCell(resourceWaypoint.cell, hexGrid);
+            aiPathfinding.CreateMap(unit);
+            bool moved = unit.MoveToCell(resourceWaypoint.cell, aiPathfinding);
             return moved ? NodeState.Success : NodeState.Failure;
         }
 
@@ -200,14 +207,16 @@ public class UnitAI : MonoBehaviour
                 return NodeState.Success;
             }
 
-            bool moved = unit.MoveToCell(safeCell, hexGrid);
+            aiPathfinding.CreateMap(unit);
+            bool moved = unit.MoveToCell(safeCell, aiPathfinding);
             return moved ? NodeState.Success : NodeState.Failure;
         }
 
         HexCell friendlyBase = hexGrid?.GetPlayerBase(unit.OwnerPlayerID);
         if (friendlyBase != null && unit.remainingMovement > 0)
         {
-            bool moved = unit.MoveToCell(friendlyBase, hexGrid);
+            aiPathfinding.CreateMap(unit);
+            bool moved = unit.MoveToCell(friendlyBase, aiPathfinding);
             return moved ? NodeState.Success : NodeState.Failure;
         }
 

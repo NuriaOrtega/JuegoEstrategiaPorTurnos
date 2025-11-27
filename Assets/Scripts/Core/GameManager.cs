@@ -24,6 +24,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Estado de Selección")]
     public Unit selectedUnit;
+    private DijkstraPathfinding pathfinding;
 
     void Awake()
     {
@@ -43,6 +44,7 @@ public class GameManager : MonoBehaviour
             hexGrid = FindObjectOfType<HexGrid>();
 
         strategicManager = FindObjectOfType<StrategicManager>();
+        pathfinding = new DijkstraPathfinding(hexGrid);
 
         StartCoroutine(SpawnStartingUnits());
     }
@@ -166,12 +168,14 @@ public class GameManager : MonoBehaviour
             player1Units.Remove(unit);
     }
 
-    public void ActivateRangeAnimation(HexCell casilla, UnitType unidad)
+    public void ActivateRangeAnimation(Unit unit)
     {
-        List<HexCell> celdasEnZona;
-        List<HexCell> vecinos = casilla.neighbors;
+        var resultado = pathfinding.GetCellsOnRange();
+        List<HexCell> rangoAtaque = resultado.Item1;
+        List<HexCell> rangoMovimiento = resultado.Item2;
 
-        // foreach (HexCell vecino in vecinos)
+        foreach (HexCell celda in rangoAtaque) Debug.Log($"Se puede atacar a la unidade de la celda: {celda.gridPosition}");
+        foreach (HexCell celda in rangoMovimiento) Debug.Log($"Se puede mover a la celda: {celda.gridPosition}");
     }
 
     public void OnCellSelected(HexCell cell)
@@ -186,7 +190,8 @@ public class GameManager : MonoBehaviour
             if (cell.occupyingUnit != null)
             {
                 selectedUnit = cell.occupyingUnit;
-                ActivateRangeAnimation(cell, selectedUnit.unitType);
+                pathfinding.CreateMap(selectedUnit);
+                ActivateRangeAnimation(selectedUnit);
                 Debug.Log($"Selected unit: {selectedUnit.unitType}");
             }
         }
@@ -199,9 +204,13 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                selectedUnit.MoveToCell(cell, hexGrid);
+                selectedUnit.MoveToCell(cell, pathfinding);
                 selectedUnit = null;
             }
+
+            // selectedUnit = null;
+            // pathfinding = null;
+            // DesactivateRangeAnimation();
         }
         else
         {
