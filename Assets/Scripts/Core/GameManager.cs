@@ -49,6 +49,14 @@ public class GameManager : MonoBehaviour
         StartCoroutine(SpawnStartingUnits());
     }
 
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            EndTurn();
+        }
+    }
+
     public List<Unit> GetAllUnitsForPlayer(int playerID)
     {
         return playerID == 0 ? player0Units : player1Units;
@@ -238,7 +246,6 @@ public class GameManager : MonoBehaviour
             unit.ResetForNewTurn();
         }
 
-
         AddResources(currentPlayerTurn, RESOURCES_PER_TURN);
 
         CollectResourcesFromNodes(currentPlayerTurn);
@@ -253,6 +260,7 @@ public class GameManager : MonoBehaviour
 
         if (currentPlayerTurn == 1 && strategicManager != null)
         {
+            Debug.Log("Empieza el turno de la IA");
             strategicManager.ExecuteAITurn();
         }
     }

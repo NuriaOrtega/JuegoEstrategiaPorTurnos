@@ -45,11 +45,11 @@ public class StrategicManager : MonoBehaviour
 
         UpdateStrategicSystems();
 
-        MakeProductionDecisions();
-
         AssignOrdersToUnits();
 
         ExecuteUnitActions();
+
+        MakeProductionDecisions();
 
         Debug.Log("======== STRATEGIC MANAGER: AI TURN END ========");
 
