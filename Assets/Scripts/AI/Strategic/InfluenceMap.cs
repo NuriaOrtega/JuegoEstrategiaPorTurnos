@@ -206,39 +206,39 @@ public class InfluenceMap : MonoBehaviour
         return nearest;
     }
 
-    void OnDrawGizmos()
-    {
-        if (!visualizeInfluence || hexGrid == null || friendlyInfluence == null)
-            return;
+    // void OnDrawGizmos()
+    // {
+    //     if (!visualizeInfluence || hexGrid == null || friendlyInfluence == null)
+    //         return;
 
-        List<HexCell> allCells = hexGrid.GetAllCells();
+    //     List<HexCell> allCells = hexGrid.GetAllCells();
 
-        foreach (HexCell cell in allCells)
-        {
-            Vector2Int pos = cell.gridPosition;
-            float friendly = friendlyInfluence[pos.x, pos.y];
-            float enemy = enemyInfluence[pos.x, pos.y];
-            float net = friendly - enemy;
+    //     foreach (HexCell cell in allCells)
+    //     {
+    //         Vector2Int pos = cell.gridPosition;
+    //         float friendly = friendlyInfluence[pos.x, pos.y];
+    //         float enemy = enemyInfluence[pos.x, pos.y];
+    //         float net = friendly - enemy;
 
-            Color color;
-            if (net > 0)
-            {
-                float intensity = Mathf.Clamp01(net / 20f);
-                color = new Color(0f, intensity, 0f, 0.5f);
-            }
-            else if (net < 0)
-            {
-                float intensity = Mathf.Clamp01(-net / 20f);
-                color = new Color(intensity, 0f, 0f, 0.5f);
-            }
-            else
-            {
-                color = new Color(1f, 1f, 0f, 0.3f);
-            }
+    //         Color color;
+    //         if (net > 0)
+    //         {
+    //             float intensity = Mathf.Clamp01(net / 20f);
+    //             color = new Color(0f, intensity, 0f, 0.5f);
+    //         }
+    //         else if (net < 0)
+    //         {
+    //             float intensity = Mathf.Clamp01(-net / 20f);
+    //             color = new Color(intensity, 0f, 0f, 0.5f);
+    //         }
+    //         else
+    //         {
+    //             color = new Color(1f, 1f, 0f, 0.3f);
+    //         }
 
-            Gizmos.color = color;
-            Vector3 cellPos = cell.transform.position + Vector3.up * 0.1f;
-            Gizmos.DrawCube(cellPos, new Vector3(0.8f, 0.05f, 0.8f));
-        }
-    }
+    //         Gizmos.color = color;
+    //         Vector3 cellPos = cell.transform.position + Vector3.up * 0.1f;
+    //         Gizmos.DrawCube(cellPos, new Vector3(0.8f, 0.05f, 0.8f));
+    //     }
+    // }
 }

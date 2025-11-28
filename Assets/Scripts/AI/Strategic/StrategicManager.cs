@@ -63,7 +63,7 @@ public class StrategicManager : MonoBehaviour
 
         int friendlyCount = friendlyUnits.Count;
         int enemyCount = enemyUnits.Count;
-        int resources = gameManager.resourcesPerPlayer[aiPlayerID];
+        int resources = gameManager.resourcesPerPlayer[aiPlayerID]; //Se puede omitir
 
         Debug.Log($"[Analysis] Friendly Units: {friendlyCount}, Enemy Units: {enemyCount}, Resources: {resources}");
 
