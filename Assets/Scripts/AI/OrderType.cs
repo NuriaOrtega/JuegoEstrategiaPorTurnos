@@ -1,7 +1,7 @@
 public enum OrderType
 {
-    AttackBase,
-    DefendZone,
+    Attack,
+    Defend,
     GatherResources,
     Retreat,
     Idle

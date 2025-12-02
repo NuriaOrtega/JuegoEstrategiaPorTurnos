@@ -40,13 +40,13 @@ public class UnitAI : MonoBehaviour
             {
                 new BTSequence(new List<BTNode>
                 {
-                    new BTCondition(() => unit.currentOrder == OrderType.AttackBase),
+                    new BTCondition(() => unit.currentOrder == OrderType.Attack),
                     new BTAction(ExecuteAttackBehavior)
                 }),
 
                 new BTSequence(new List<BTNode>
                 {
-                    new BTCondition(() => unit.currentOrder == OrderType.DefendZone),
+                    new BTCondition(() => unit.currentOrder == OrderType.Defend),
                     new BTAction(ExecuteDefendBehavior)
                 }),
 

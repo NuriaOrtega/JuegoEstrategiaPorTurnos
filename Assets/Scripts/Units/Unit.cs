@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Unit : MonoBehaviour
@@ -79,12 +80,26 @@ public class Unit : MonoBehaviour
             return false;
         }
 
+        var resultado = pathfinding.GetCellsOnRange();
+        List<HexCell> rangoMovimiento = resultado.Item2;
+
+        if(!rangoMovimiento.Contains(targetCell) && OwnerPlayerID == 1) {
+            targetCell = pathfinding.ClosestCellToDestiny(path);
+            path = pathfinding.ConstructPath(targetCell);
+        }
+
         float totalCost = 0f;
         for (int i = 1; i < path.Count; i++)
         {
             totalCost += path[i].GetMovementCost();
         }
 
+        if(!rangoMovimiento.Contains(targetCell) && OwnerPlayerID == 0 )
+        {
+            Debug.Log($"Not enough movement. Need {totalCost}, have {remainingMovement}");
+            return false;
+        } 
+        
         if (totalCost > remainingMovement)
         {
             Debug.Log($"Not enough movement. Need {totalCost}, have {remainingMovement}");

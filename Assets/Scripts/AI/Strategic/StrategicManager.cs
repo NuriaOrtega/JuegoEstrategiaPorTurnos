@@ -215,13 +215,13 @@ public class StrategicManager : MonoBehaviour
 
         for (int i = 0; i < attackers && assigned < sortedUnits.Count; i++, assigned++)
         {
-            sortedUnits[assigned].currentOrder = OrderType.AttackBase;
+            sortedUnits[assigned].currentOrder = OrderType.Attack;
             Debug.Log($"[Order] {sortedUnits[assigned].gameObject.name} assigned to ATTACK");
         }
 
         for (int i = 0; i < defenders && assigned < sortedUnits.Count; i++, assigned++)
         {
-            sortedUnits[assigned].currentOrder = OrderType.DefendZone;
+            sortedUnits[assigned].currentOrder = OrderType.Defend;
             Debug.Log($"[Order] {sortedUnits[assigned].gameObject.name} assigned to DEFEND");
         }
 
@@ -263,11 +263,11 @@ public class StrategicManager : MonoBehaviour
 
         switch (unit.currentOrder)
         {
-            case OrderType.AttackBase:
+            case OrderType.Attack:
                 ExecuteAttackOrder(unit);
                 break;
 
-            case OrderType.DefendZone:
+            case OrderType.Defend:
                 ExecuteDefendOrder(unit);
                 break;
 

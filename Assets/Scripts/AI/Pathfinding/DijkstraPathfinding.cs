@@ -130,6 +130,16 @@ public class DijkstraPathfinding : MonoBehaviour
     {
         return (cellsOnAttackRange, cellsOnMovementRange);
     }
+    public HexCell ClosestCellToDestiny(List<HexCell> path)
+    {
+        HexCell masCercana = null;
+        foreach (HexCell celda in path)
+        {
+            if (cellsOnMovementRange.Contains(celda)) masCercana = celda;
+            else break;
+        }
+        return masCercana;
+    }
 }
 
 
