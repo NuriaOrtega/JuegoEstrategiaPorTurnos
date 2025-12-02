@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using System.Collections;
 
 public class HexCell : MonoBehaviour
 {
@@ -88,5 +89,45 @@ public class HexCell : MonoBehaviour
     public float GetMovementCost()
     {
         return terrainType.GetMovementCost();
+    }
+
+    public void ResetColor()
+    {
+        StartCoroutine(Bounce(originalColor));
+    }
+
+    public void SetColor()
+    {
+        StartCoroutine(Bounce(new Color(0.0f, 0.0f, 0.0f)));
+    }
+
+    private IEnumerator Bounce(Color nuevoColor)
+    {
+        float height = 0.2f;
+        float duration = 0.1f;
+
+        Vector3 startPos = transform.position;
+        Vector3 upPos = startPos + Vector3.up * height;
+
+        float t = 0f;
+
+        // Subida
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            transform.position = Vector3.Lerp(startPos, upPos, t / duration);
+            yield return null;
+        }
+
+        hexRenderer.material.color = nuevoColor;
+
+        t = 0f;
+        // Bajada
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            transform.position = Vector3.Lerp(upPos, startPos, t / duration);
+            yield return null;
+        }
     }
 }

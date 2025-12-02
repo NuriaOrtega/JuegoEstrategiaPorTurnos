@@ -5,8 +5,8 @@ using TMPro;
 public class HexGrid : MonoBehaviour
 {
     [Header("Configuración de la cuadrícula")]
-    public int gridWidth = 10;
-    public int gridHeight = 10;
+    public int gridWidth = 11;
+    public int gridHeight = 11;
     public GameObject hexCellPrefab;
 
     [Header("Tamaño real del hexágono (unidades)")]
