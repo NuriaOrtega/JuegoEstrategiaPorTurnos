@@ -18,6 +18,7 @@ public class TecnicalDisplay : MonoBehaviour
     }
 
     private ViewMode modoActual = ViewMode.Normal;
+    private Unit ultimaUnidadSeleccionada = null;
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
