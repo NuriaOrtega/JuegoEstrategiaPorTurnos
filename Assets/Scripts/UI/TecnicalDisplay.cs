@@ -33,7 +33,6 @@ public class TecnicalDisplay : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.I)) SetViewMode(ViewMode.Influence);
         else if (Input.GetKeyDown(KeyCode.W)) SetViewMode(ViewMode.Waypoint);
         else if (Input.GetKeyDown(KeyCode.N)) SetViewMode(ViewMode.Normal);
-        else SetViewMode(ViewMode.Normal);
     }
 
     private void SetViewMode(ViewMode modoVisualizacion)

@@ -176,16 +176,6 @@ public class GameManager : MonoBehaviour
             player1Units.Remove(unit);
     }
 
-    public void ActivateRangeAnimation(Unit unit)
-    {
-        var resultado = pathfinding.GetCellsOnRange();
-        List<HexCell> rangoAtaque = resultado.Item1;
-        List<HexCell> rangoMovimiento = resultado.Item2;
-
-        foreach (HexCell celda in rangoAtaque) Debug.Log($"Se puede atacar a la unidade de la celda: {celda.gridPosition}");
-        foreach (HexCell celda in rangoMovimiento) Debug.Log($"Se puede mover a la celda: {celda.gridPosition}");
-    }
-
     public void OnCellSelected(HexCell cell)
     {
         if (cell == null) return;
@@ -199,16 +189,23 @@ public class GameManager : MonoBehaviour
             {
                 selectedUnit = cell.occupyingUnit;
                 pathfinding.CreateMap(selectedUnit);
-                ActivateRangeAnimation(selectedUnit);
                 Debug.Log($"Selected unit: {selectedUnit.unitType}");
             }
         }
         else if (selectedUnit.OwnerPlayerID == 0)
         {
-            if (cell.occupyingUnit != null && cell.occupyingUnit.OwnerPlayerID != 0)
+            if (cell.occupyingUnit != null)
             {
-                selectedUnit.AttackUnit(cell.occupyingUnit);
-                selectedUnit = null;
+                if (cell.occupyingUnit.OwnerPlayerID != 0)
+                {
+                    selectedUnit.AttackUnit(cell.occupyingUnit);
+                    selectedUnit = null;
+                } else
+                {
+                    selectedUnit = cell.occupyingUnit;
+                    Debug.Log($"Selected unit: {selectedUnit.unitType}");
+                }
+                
             }
             else
             {
