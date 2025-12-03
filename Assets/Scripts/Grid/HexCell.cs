@@ -17,6 +17,7 @@ public class HexCell : MonoBehaviour
 
     private Renderer hexRenderer;
     private Color originalColor;
+    private Color actualColor;
     private bool isHighlighted = false;
 
     public void Initialize(Vector2Int coordinates, TerrainType terrain)
@@ -28,6 +29,7 @@ public class HexCell : MonoBehaviour
         if (hexRenderer != null)
         {
             originalColor = terrainType.GetTerrainColor();
+            actualColor = originalColor;
             hexRenderer.material.color = originalColor;
         }
     }
@@ -50,7 +52,7 @@ public class HexCell : MonoBehaviour
         {
             if (isHover)
             {
-                hexRenderer.material.color = originalColor * 0.7f;
+                hexRenderer.material.color = actualColor * 0.7f;
             }
             else
             {
@@ -59,7 +61,7 @@ public class HexCell : MonoBehaviour
         }
         else
         {
-            hexRenderer.material.color = originalColor;
+            hexRenderer.material.color = actualColor;
         }
     }
 
@@ -94,11 +96,13 @@ public class HexCell : MonoBehaviour
     public void ResetColor()
     {
         StartCoroutine(Bounce(originalColor));
+        actualColor = originalColor;
     }
 
-    public void SetColor()
+    public void SetColor(Color nuevoColor)
     {
-        StartCoroutine(Bounce(new Color(0.0f, 0.0f, 0.0f)));
+        StartCoroutine(Bounce(nuevoColor));
+        actualColor = nuevoColor;
     }
 
     private IEnumerator Bounce(Color nuevoColor)

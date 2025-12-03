@@ -26,7 +26,7 @@ public class StrategicManager : MonoBehaviour
     void Start()
     {
         gameManager = GameManager.Instance;
-        hexGrid = FindObjectOfType<HexGrid>();
+        hexGrid = FindFirstObjectByType<HexGrid>();
         influenceMap = FindObjectOfType<InfluenceMap>();
         tacticalWaypoints = FindObjectOfType<TacticalWaypoints>();
         aiPathfinding = new DijkstraPathfinding(hexGrid);

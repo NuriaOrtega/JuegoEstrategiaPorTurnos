@@ -241,4 +241,23 @@ public class InfluenceMap : MonoBehaviour
             Gizmos.DrawCube(cellPos, new Vector3(0.8f, 0.05f, 0.8f));
         }
     }
+
+    public Color ObtainColorByNetInfluence(HexCell celda)
+    {
+        float influenciaNeta = GetNetInfluence(celda);
+
+        Color color;
+        if(influenciaNeta>0) //Positiva para la ia -->más verde
+        {
+            float intensity = Mathf.Clamp01(influenciaNeta / 20f);
+            color = new Color(0f, intensity, 0f, 0.5f);
+        }
+        else if(influenciaNeta<0) //Negativa para la ia --> más rojo
+        {
+            float intensity = Mathf.Clamp01(-influenciaNeta / 20f);
+            color = new Color(intensity, 0f, 0f, 0.5f);
+        } else color = new Color(0f, 0f, 0f, 0f);
+
+        return color;
+    }
 }

@@ -9,6 +9,7 @@ public class TecnicalDisplay : MonoBehaviour
     [SerializeField] private InfluenceMap influenceMap;
     [SerializeField] private HexGrid hexGrid;
     [SerializeField] private GameManager gameManager;
+    [SerializeField] private TacticalWaypoints waypoints;
 
     private enum ViewMode
     {
@@ -90,7 +91,7 @@ public class TecnicalDisplay : MonoBehaviour
                 break;
             case ViewMode.Influence: 
                 Debug.Log("Activar modo de vista influence.");
-                celda.SetColor();
+                celda.SetColor(influenceMap.ObtainColorByNetInfluence(celda));
                 break;
             case ViewMode.Selection:
                 break;
