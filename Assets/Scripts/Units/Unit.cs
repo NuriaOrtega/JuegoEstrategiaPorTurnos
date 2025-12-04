@@ -205,4 +205,9 @@ public class Unit : MonoBehaviour
     {
         return (float)currentHealth / maxHealth;
     }
+
+    public virtual float GetTerrainMovementModifier(TerrainType terrain)
+    {
+        return 1.0f;
+    }
 }

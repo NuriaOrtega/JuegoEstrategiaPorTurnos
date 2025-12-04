@@ -5,14 +5,14 @@ using System.Linq;
 [RequireComponent(typeof(Unit))]
 public class UnitAI : MonoBehaviour
 {
-    private Unit unit;
-    private HexGrid hexGrid;
-    private InfluenceMap influenceMap;
-    private TacticalWaypoints tacticalWaypoints;
-    private GameManager gameManager;
-    private DijkstraPathfinding aiPathfinding;
+    protected Unit unit;
+    protected HexGrid hexGrid;
+    protected InfluenceMap influenceMap;
+    protected TacticalWaypoints tacticalWaypoints;
+    protected GameManager gameManager;
+    protected DijkstraPathfinding aiPathfinding;
 
-    private BTNode behaviorTree;
+    protected BTNode behaviorTree;
 
     void Start()
     {
@@ -26,7 +26,7 @@ public class UnitAI : MonoBehaviour
         BuildBehaviorTree();
     }
 
-    private void BuildBehaviorTree()
+    protected virtual void BuildBehaviorTree()
     {
         behaviorTree = new BTSelector(new List<BTNode>
         {
@@ -76,7 +76,7 @@ public class UnitAI : MonoBehaviour
         Debug.Log($"[UnitAI] {gameObject.name} behavior tree result: {result}");
     }
 
-    private bool IsEnemyInAttackRange()
+    protected bool IsEnemyInAttackRange()
     {
         if (unit.hasAttacked)
             return false;
@@ -85,7 +85,7 @@ public class UnitAI : MonoBehaviour
         return nearestEnemy != null && CombatSystem.CanAttack(unit, nearestEnemy);
     }
 
-    private bool IsInDanger()
+    protected bool IsInDanger()
     {
         if (unit.GetHealthPercentage() < 0.3f)
             return true;
@@ -96,7 +96,7 @@ public class UnitAI : MonoBehaviour
         return false;
     }
 
-    private NodeState AttackNearestEnemy()
+    protected NodeState AttackNearestEnemy()
     {
         Unit enemy = FindNearestEnemy();
         if (enemy != null && CombatSystem.CanAttack(unit, enemy))
@@ -108,7 +108,7 @@ public class UnitAI : MonoBehaviour
         return NodeState.Failure;
     }
 
-    private NodeState ExecuteAttackBehavior()
+    protected NodeState ExecuteAttackBehavior()
     {
         if (IsInDanger())
         {
@@ -143,7 +143,7 @@ public class UnitAI : MonoBehaviour
         return NodeState.Failure;
     }
 
-    private NodeState ExecuteDefendBehavior()
+    protected NodeState ExecuteDefendBehavior()
     {
         Unit nearestEnemy = FindNearestEnemy();
         if (nearestEnemy != null)
@@ -178,7 +178,7 @@ public class UnitAI : MonoBehaviour
         return NodeState.Success;
     }
 
-    private NodeState ExecuteGatherBehavior()
+    protected NodeState ExecuteGatherBehavior()
     {
         if (unit.CurrentCell != null && unit.CurrentCell.isResourceNode && !unit.CurrentCell.resourceCollected)
         {
@@ -196,7 +196,7 @@ public class UnitAI : MonoBehaviour
         return NodeState.Failure;
     }
 
-    private NodeState ExecuteRetreatBehavior()
+    protected NodeState ExecuteRetreatBehavior()
     {
         HexCell safeCell = influenceMap?.FindNearestSafeCell(unit.CurrentCell);
 
@@ -223,12 +223,12 @@ public class UnitAI : MonoBehaviour
         return NodeState.Failure;
     }
 
-    private NodeState ExecuteIdleBehavior()
+    protected NodeState ExecuteIdleBehavior()
     {
         return NodeState.Success;
     }
 
-    private Unit FindNearestEnemy()
+    protected Unit FindNearestEnemy()
     {
         if (gameManager == null)
             return null;

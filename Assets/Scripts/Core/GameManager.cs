@@ -132,11 +132,38 @@ public class GameManager : MonoBehaviour
         BoxCollider collider = unitGO.AddComponent<BoxCollider>();
         collider.size = new Vector3(0.3f, 0.3f, 0.3f);
 
-        // Add Unit component
-        Unit unit = unitGO.AddComponent<Unit>();
+        Unit unit;
+        switch (type)
+        {
+            case UnitType.Infantry:
+                unit = unitGO.AddComponent<InfantryUnit>();
+                break;
+            case UnitType.Cavalry:
+                unit = unitGO.AddComponent<CavalryUnit>();
+                break;
+            case UnitType.Artillery:
+                unit = unitGO.AddComponent<ArtilleryUnit>();
+                break;
+            default:
+                unit = unitGO.AddComponent<InfantryUnit>();
+                break;
+        }
 
-        // Add UnitAI component for AI-controlled behavior tree
-        UnitAI unitAI = unitGO.AddComponent<UnitAI>();
+        switch (type)
+        {
+            case UnitType.Infantry:
+                unitGO.AddComponent<InfantryAI>();
+                break;
+            case UnitType.Cavalry:
+                unitGO.AddComponent<CavalryAI>();
+                break;
+            case UnitType.Artillery:
+                unitGO.AddComponent<ArtilleryAI>();
+                break;
+            default:
+                unitGO.AddComponent<InfantryAI>();
+                break;
+        }
 
         unit.Initialize(type, playerID, spawnCell);
 
