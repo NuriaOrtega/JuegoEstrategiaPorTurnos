@@ -21,7 +21,7 @@ public class TecnicalDisplay : MonoBehaviour
 
     private ViewMode modoActual = ViewMode.Normal;
     private Unit lastSelectedUnit = null;
-    
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -99,6 +99,4 @@ public class TecnicalDisplay : MonoBehaviour
                 break;
         }
     }
-
-    // private void Activate
 }

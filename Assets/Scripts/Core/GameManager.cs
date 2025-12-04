@@ -135,6 +135,9 @@ public class GameManager : MonoBehaviour
         // Add Unit component
         Unit unit = unitGO.AddComponent<Unit>();
 
+        // Add UnitAI component for AI-controlled behavior tree
+        UnitAI unitAI = unitGO.AddComponent<UnitAI>();
+
         unit.Initialize(type, playerID, spawnCell);
 
         resourcesPerPlayer[playerID] -= stats.cost;
@@ -212,10 +215,6 @@ public class GameManager : MonoBehaviour
                 selectedUnit.MoveToCell(cell, pathfinding);
                 selectedUnit = null;
             }
-
-            // selectedUnit = null;
-            // pathfinding = null;
-            // DesactivateRangeAnimation();
         }
         else
         {

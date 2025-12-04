@@ -274,14 +274,4 @@ public class TacticalWaypoints : MonoBehaviour
             Gizmos.DrawLine(pos, pos + Vector3.up * lineHeight);
         }
     }
-
-    // public Color ObtainColorByWaypoint(HexCell celda)
-    // {
-    //     foreach (Waypoint wp in waypoints)
-    //     {
-    //         Debug.Log("Waypoint en celda: " + wp.cell + 
-    //                 " Tipo: " + wp.type + 
-    //                 " Prioridad: " + wp.priority);
-    //     }
-    // }
 }

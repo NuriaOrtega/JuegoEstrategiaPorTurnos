@@ -252,28 +252,4 @@ public class UnitAI : MonoBehaviour
 
         return nearest;
     }
-
-    private Unit FindBestTarget()
-    {
-        if (gameManager == null)
-            return null;
-
-        List<Unit> enemies = gameManager.GetAllUnitsForPlayer(1 - unit.OwnerPlayerID);
-        List<Unit> inRange = enemies.Where(e =>
-            e != null &&
-            e.CurrentCell != null &&
-            CombatSystem.IsInRange(unit.CurrentCell, e.CurrentCell, unit.attackRange)
-        ).ToList();
-
-        if (inRange.Count == 0)
-            return null;
-
-        Unit bestTarget = inRange
-            .OrderByDescending(e => CombatSystem.WouldBeLethal(unit, e) ? 1 : 0)
-            .ThenByDescending(e => e.attackPower)
-            .ThenBy(e => e.currentHealth)
-            .First();
-
-        return bestTarget;
-    }
 }

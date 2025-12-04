@@ -47,7 +47,7 @@ public class StrategicManager : MonoBehaviour
 
         AssignOrdersToUnits();
 
-        ExecuteUnitActions();
+        ExecuteUnits();
 
         MakeProductionDecisions();
 
@@ -63,9 +63,8 @@ public class StrategicManager : MonoBehaviour
 
         int friendlyCount = friendlyUnits.Count;
         int enemyCount = enemyUnits.Count;
-        int resources = gameManager.resourcesPerPlayer[aiPlayerID]; //Se puede omitir
 
-        Debug.Log($"[Analysis] Friendly Units: {friendlyCount}, Enemy Units: {enemyCount}, Resources: {resources}");
+        Debug.Log($"[Analysis] Friendly Units: {friendlyCount}, Enemy Units: {enemyCount}");
 
         float numericalAdvantage = (float)friendlyCount / Mathf.Max(1, enemyCount);
         Debug.Log($"[Analysis] Numerical Advantage: {numericalAdvantage:F2}");
@@ -245,117 +244,17 @@ public class StrategicManager : MonoBehaviour
                            .ToList();
     }
 
-    private void ExecuteUnitActions()
+    private void ExecuteUnits()
     {
         foreach (Unit unit in friendlyUnits)
         {
-            aiPathfinding.CreateMap(unit);
-            ExecuteUnitOrder(unit);
-        }
-    }
-
-    private void ExecuteUnitOrder(Unit unit)
-    {
-        if (unit == null || unit.CurrentCell == null)
-            return;
-
-        Debug.Log($"[Unit Action] {unit.gameObject.name} executing order: {unit.currentOrder}");
-
-        switch (unit.currentOrder)
-        {
-            case OrderType.Attack:
-                ExecuteAttackOrder(unit);
-                break;
-
-            case OrderType.Defend:
-                ExecuteDefendOrder(unit);
-                break;
-
-            case OrderType.GatherResources:
-                ExecuteGatherOrder(unit);
-                break;
-
-            case OrderType.Retreat:
-                ExecuteRetreatOrder(unit);
-                break;
-
-            case OrderType.Idle:
-                break;
-        }
-    }
-    private void ExecuteAttackOrder(Unit unit)
-    {
-        Unit nearestEnemy = FindNearestEnemy(unit);
-        if (nearestEnemy != null && CombatSystem.CanAttack(unit, nearestEnemy))
-        {
-            unit.AttackUnit(nearestEnemy);
-            return;
-        }
-
-        Waypoint attackWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.Attack);
-        if (attackWaypoint != null && unit.remainingMovement > 0)
-        {
-            unit.MoveToCell(attackWaypoint.cell, aiPathfinding);
-        }
-    }
-
-    private void ExecuteDefendOrder(Unit unit)
-    {
-        Unit nearestEnemy = FindNearestEnemy(unit);
-        if (nearestEnemy != null && CombatSystem.CanAttack(unit, nearestEnemy))
-        {
-            unit.AttackUnit(nearestEnemy);
-            return;
-        }
-
-        Waypoint defenseWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Defense);
-        if (defenseWaypoint != null && unit.remainingMovement > 0)
-        {
-            int distance = CombatSystem.HexDistance(unit.CurrentCell, defenseWaypoint.cell);
-            if (distance > 2)
+            // Delegar la ejecución al behavior tree de cada unidad
+            UnitAI unitAI = unit.GetComponent<UnitAI>();
+            if (unitAI != null)
             {
-                unit.MoveToCell(defenseWaypoint.cell, aiPathfinding);
+                unitAI.ExecuteTurn();
             }
         }
-    }
-
-    private void ExecuteGatherOrder(Unit unit)
-    {
-        Waypoint resourceWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Resource);
-        if (resourceWaypoint != null && unit.remainingMovement > 0)
-        {
-            unit.MoveToCell(resourceWaypoint.cell, aiPathfinding);
-        }
-    }
-
-    private void ExecuteRetreatOrder(Unit unit)
-    {
-        HexCell safeCell = influenceMap?.FindNearestSafeCell(unit.CurrentCell);
-        if (safeCell != null && unit.remainingMovement > 0)
-        {
-            unit.MoveToCell(safeCell, aiPathfinding);
-        }
-    }
-
-    private Unit FindNearestEnemy(Unit from)
-    {
-        Unit nearest = null;
-        int minDistance = int.MaxValue;
-
-        foreach (Unit enemy in enemyUnits)
-        {
-            if (enemy == null || enemy.CurrentCell == null)
-                continue;
-
-            int distance = CombatSystem.HexDistance(from.CurrentCell, enemy.CurrentCell);
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                nearest = enemy;
-            }
-        }
-
-        return nearest;
     }
 
     private HardcodedUnitStats GetStatsForType(UnitType type)
