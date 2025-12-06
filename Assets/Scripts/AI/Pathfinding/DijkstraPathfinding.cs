@@ -112,8 +112,12 @@ public class DijkstraPathfinding : MonoBehaviour
             PathNode nodo = entrada.Value;
 
             // Si la celda esta en rango de ataque y en la celda hay una unidad enemiga --> añadir a la lista
-            if (nodo.gCost <= distanciaAtaque && hexCell.IsOccupied() && hexCell.occupyingUnit.OwnerPlayerID != unit.OwnerPlayerID) cellsOnAttackRange.Add(hexCell);
-
+            int distanciaALaCelda = unit.HexDistance(unit.CurrentCell, hexCell);
+            if (distanciaALaCelda <= distanciaAtaque) Debug.Log("celda en rango de ataque" + distanciaALaCelda);
+            if (hexCell.IsOccupied()) {
+                Debug.Log("La celda esta siendo ocupada por el jugador" + hexCell.occupyingUnit.OwnerPlayerID);
+                cellsOnAttackRange.Add(hexCell);
+            }
             // Si la celda esta en rango de desplazamiento --> ñadir a la lista
             if (nodo.gCost <= distanciaDesplazamiento) cellsOnMovementRange.Add(hexCell);
         }
@@ -139,6 +143,12 @@ public class DijkstraPathfinding : MonoBehaviour
             else break;
         }
         return masCercana;
+    }
+
+    public Color ColorByRange(HexCell celda)
+    {
+        if (cellsOnMovementRange.Contains(celda)) return celda.originalColor + new Color(0.0f, 0.3f, 0.0f);
+        else return celda.originalColor;
     }
 }
 

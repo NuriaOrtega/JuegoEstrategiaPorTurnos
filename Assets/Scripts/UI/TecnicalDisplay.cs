@@ -11,7 +11,7 @@ public class TecnicalDisplay : MonoBehaviour
     [SerializeField] private GameManager gameManager;
     [SerializeField] private TacticalWaypoints waypoints;
 
-    private enum ViewMode
+    public enum ViewMode
     {
         Normal,
         Selection,
@@ -19,8 +19,8 @@ public class TecnicalDisplay : MonoBehaviour
         Waypoint
     }
 
-    private ViewMode modoActual = ViewMode.Normal;
-    private Unit lastSelectedUnit = null;
+    public ViewMode modoActual = ViewMode.Normal;
+    private Unit unidadSeleccionada = null;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -32,8 +32,7 @@ public class TecnicalDisplay : MonoBehaviour
 
     void Update()
     {
-        if (gameManager.selectedUnit != null && lastSelectedUnit !=gameManager.selectedUnit) SetViewMode(ViewMode.Selection);
-        else if (Input.GetKeyDown(KeyCode.I)) SetViewMode(ViewMode.Influence);
+        if (Input.GetKeyDown(KeyCode.I)) SetViewMode(ViewMode.Influence);
         else if (Input.GetKeyDown(KeyCode.W)) SetViewMode(ViewMode.Waypoint);
         else if (Input.GetKeyDown(KeyCode.N)) SetViewMode(ViewMode.Normal);
     }
@@ -44,12 +43,9 @@ public class TecnicalDisplay : MonoBehaviour
 
         modoActual = nuevoModo;
 
-        StartCoroutine(ExecuteTransition());
-    }
-
-    private IEnumerator ExecuteTransition()
-    {
         HexCell centro = hexGrid.GetCell(hexGrid.gridWidth/2, hexGrid.gridHeight/2);
+
+        unidadSeleccionada = null;
 
         List<HexCell> allCells = hexGrid.GetAllCells();
 
@@ -68,7 +64,44 @@ public class TecnicalDisplay : MonoBehaviour
             if(d > maxDist) maxDist = d;
         }
 
-        for (int i = 0; i < maxDist+1; i++)
+        StartCoroutine(ExecuteTransition(anillos, maxDist));
+    }
+
+    public void SetViewModeSelection(Unit unidad)
+    {
+        Debug.Log("Modo de visualización: Unidad seleccionada.");
+
+        modoActual = ViewMode.Selection;
+
+        unidadSeleccionada = unidad;
+
+        var resultado = gameManager.pathfinding.GetCellsOnRange();
+        List<HexCell> rangoMovimiento = resultado.Item2;
+
+        Dictionary<int, List<HexCell>> anillos = new Dictionary<int, List<HexCell>>();
+
+        int maxDist = unidad.remainingMovement;
+
+        foreach(HexCell celda in rangoMovimiento)
+        {
+            Debug.Log("Se ha añadido una celda al rango de movimiento.");
+            int d = CombatSystem.HexDistance(unidad.CurrentCell, celda);
+
+            if(!anillos.ContainsKey(d)) anillos[d] = new List<HexCell>();
+
+            anillos[d].Add(celda);
+        }
+
+        gameManager.hexGrid.ClearGridColours();
+
+        StartCoroutine(ExecuteTransition(anillos, maxDist));
+    }
+
+    private IEnumerator ExecuteTransition(Dictionary<int, List<HexCell>> anillos, int maxDist)
+    {
+        Debug.Log("Ejecutando animacion de los anillos.");
+
+        for (int i = 0; i <= maxDist; i++)
         {
             if(anillos.ContainsKey(i))
             {
@@ -87,13 +120,12 @@ public class TecnicalDisplay : MonoBehaviour
         {
             case ViewMode.Normal:
                 celda.ResetColor();
-                Debug.Log("Activar modo de vista normal.");
-                break;
-            case ViewMode.Influence: 
-                Debug.Log("Activar modo de vista influence.");
-                celda.SetColor(influenceMap.ObtainColorByNetInfluence(celda));
                 break;
             case ViewMode.Selection:
+                celda.SetColor(gameManager.pathfinding.ColorByRange(celda));
+                break;
+            case ViewMode.Influence: 
+                celda.SetColor(influenceMap.ObtainColorByNetInfluence(celda));
                 break;
             case ViewMode.Waypoint:
                 break;

@@ -24,7 +24,8 @@ public class GameManager : MonoBehaviour
 
     [Header("Estado de Selección")]
     public Unit selectedUnit;
-    private DijkstraPathfinding pathfinding;
+    public DijkstraPathfinding pathfinding;
+    public TecnicalDisplay tecnicalDisplay;
 
     void Awake()
     {
@@ -38,12 +39,14 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    [System.Obsolete]
     void Start()
     {
         if (hexGrid == null)
             hexGrid = FindObjectOfType<HexGrid>();
 
         strategicManager = FindObjectOfType<StrategicManager>();
+        tecnicalDisplay = FindObjectOfType<TecnicalDisplay>();
         pathfinding = new DijkstraPathfinding(hexGrid);
 
         StartCoroutine(SpawnStartingUnits());
@@ -219,6 +222,7 @@ public class GameManager : MonoBehaviour
             {
                 selectedUnit = cell.occupyingUnit;
                 pathfinding.CreateMap(selectedUnit);
+                tecnicalDisplay.SetViewModeSelection(selectedUnit);
                 Debug.Log($"Selected unit: {selectedUnit.unitType}");
             }
         }
@@ -230,9 +234,12 @@ public class GameManager : MonoBehaviour
                 {
                     selectedUnit.AttackUnit(cell.occupyingUnit);
                     selectedUnit = null;
+                    hexGrid.ClearGridColours();
                 } else
                 {
                     selectedUnit = cell.occupyingUnit;
+                    pathfinding.CreateMap(selectedUnit);
+                    tecnicalDisplay.SetViewModeSelection(selectedUnit);
                     Debug.Log($"Selected unit: {selectedUnit.unitType}");
                 }
                 
@@ -241,6 +248,7 @@ public class GameManager : MonoBehaviour
             {
                 selectedUnit.MoveToCell(cell, pathfinding);
                 selectedUnit = null;
+                hexGrid.ClearGridColours();
             }
         }
         else
@@ -248,11 +256,14 @@ public class GameManager : MonoBehaviour
             if (cell.occupyingUnit != null)
             {
                 selectedUnit = cell.occupyingUnit;
+                pathfinding.CreateMap(selectedUnit);
+                tecnicalDisplay.SetViewModeSelection(selectedUnit);
                 Debug.Log($"Selected unit: {selectedUnit.unitType}");
             }
             else
             {
                 selectedUnit = null;
+                hexGrid.ClearGridColours();
             }
         }
     }

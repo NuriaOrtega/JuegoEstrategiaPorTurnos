@@ -5,11 +5,13 @@ public class MouseInput : MonoBehaviour
 {
     [SerializeField] private HexGrid hexGrid;
     [SerializeField] private GameManager gameManager;
+    [SerializeField] private TecnicalDisplay tecnicalDisplay;
 
     private Camera mainCamera;
     private HexCell hoveredCell;
     private HexCell pressedCell;
 
+    [System.Obsolete]
     void Start()
     {
         mainCamera = Camera.main;
@@ -19,6 +21,9 @@ public class MouseInput : MonoBehaviour
 
         if (gameManager == null)
             gameManager = FindObjectOfType<GameManager>();
+
+        if (tecnicalDisplay == null)
+            tecnicalDisplay = FindObjectOfType<TecnicalDisplay>();
     }
 
     void Update()
@@ -61,27 +66,30 @@ public class MouseInput : MonoBehaviour
 
     private void HandleMouseClick()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (tecnicalDisplay.modoActual == TecnicalDisplay.ViewMode.Normal || tecnicalDisplay.modoActual == TecnicalDisplay.ViewMode.Selection)
         {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit))
+            if (Input.GetMouseButtonDown(0))
             {
-                HexCell clickedCell = hit.collider.GetComponent<HexCell>()
-                    ?? hit.collider.GetComponent<Unit>()?.CurrentCell;
+                Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
 
-                if (clickedCell != null)
-                    OnCellPressed(clickedCell);
+                if (Physics.Raycast(ray, out hit))
+                {
+                    HexCell clickedCell = hit.collider.GetComponent<HexCell>()
+                        ?? hit.collider.GetComponent<Unit>()?.CurrentCell;
+
+                    if (clickedCell != null)
+                        OnCellPressed(clickedCell);
+                }
             }
-        }
 
-        // Mouse button released
-        if (Input.GetMouseButtonUp(0))
-        {
-            if (pressedCell != null)
+            // Mouse button released
+            if (Input.GetMouseButtonUp(0))
             {
-                OnCellReleased(pressedCell);
+                if (pressedCell != null)
+                {
+                    OnCellReleased(pressedCell);
+                }
             }
         }
     }

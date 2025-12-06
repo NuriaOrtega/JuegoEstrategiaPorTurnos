@@ -133,31 +133,33 @@ public class HexGrid : MonoBehaviour
 
     private List<Vector2Int> GetNeighborOffsets(int col, int row)
     {
-        bool isOddRow = (row % 2 == 1);
+        bool isOddCol = (col % 2 == 1);
 
-        if (isOddRow)
-        {
+        if (isOddCol) {
+            Debug.Log(row + "Es impar.");
+
             return new List<Vector2Int>
-            {
-                new Vector2Int(0, -1),   // N
-                new Vector2Int(1, -1),   // NE
-                new Vector2Int(1, 0),    // SE
-                new Vector2Int(0, 1),    // S
-                new Vector2Int(-1, 0),   // SW
-                new Vector2Int(-1, -1)   // NW
-            };
+                {
+                    new(0, 1),   // N
+                    new(1, 1),   // NE
+                    new(1, 0),    // SE
+                    new(0, -1),    // S
+                    new(-1, 0),   // SW
+                    new(-1, 1)   // NW
+                };
         }
-        else
-        {
+        else {
+            Debug.Log(row + "Es par.");
+
             return new List<Vector2Int>
-            {
-                new Vector2Int(0, -1),   // N
-                new Vector2Int(1, 0),    // NE
-                new Vector2Int(1, 1),    // SE
-                new Vector2Int(0, 1),    // S
-                new Vector2Int(-1, 1),   // SW
-                new Vector2Int(-1, 0)    // NW
-            };
+                {
+                    new(0, 1),   // N
+                    new(1, 0),   // NE
+                    new(1, -1),    // SE
+                    new(0, -1),    // S
+                    new(-1, -1),   // SW
+                    new(-1, 0)   // NW
+                };
         }
     }
     private void PlaceBases()
@@ -315,5 +317,13 @@ public class HexGrid : MonoBehaviour
                 return cell;
         }
         return null;
+    }
+
+    public void ClearGridColours()
+    {
+        foreach (HexCell celda in cells)
+        {
+            celda.Clear();
+        }
     }
 }

@@ -16,7 +16,7 @@ public class HexCell : MonoBehaviour
     public List<HexCell> neighbors = new();
 
     private Renderer hexRenderer;
-    private Color originalColor;
+    public Color originalColor;
     private Color actualColor;
     private bool isHighlighted = false;
 
@@ -91,6 +91,12 @@ public class HexCell : MonoBehaviour
     public float GetMovementCost()
     {
         return terrainType.GetMovementCost();
+    }
+
+    public void Clear()
+    {
+        hexRenderer.material.color = originalColor;
+        actualColor = originalColor;
     }
 
     public void ResetColor()

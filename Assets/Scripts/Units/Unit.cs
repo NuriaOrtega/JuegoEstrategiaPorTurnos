@@ -214,7 +214,7 @@ public class Unit : MonoBehaviour
         return true;
     }
 
-    private int HexDistance(HexCell a, HexCell b)
+    public int HexDistance(HexCell a, HexCell b)
     {
         int q1 = a.gridPosition.x;
         int r1 = a.gridPosition.y;
