@@ -122,6 +122,61 @@ public class Unit : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Mueve la unidad a lo largo de un camino pre-calculado (por TacticalPathfinding).
+    /// El path debe incluir la celda actual como primer elemento.
+    /// </summary>
+    public bool MoveAlongPath(List<HexCell> path)
+    {
+        if (path == null || path.Count < 2)
+            return false;
+
+        if (remainingMovement <= 0)
+        {
+            Debug.Log($"Unit {gameObject.name} has no movement remaining.");
+            return false;
+        }
+
+        // path[0] es la celda actual, path[last] es el destino
+        HexCell targetCell = path[path.Count - 1];
+
+        // Verificar que el destino es válido
+        if (targetCell.IsOccupied() && targetCell.occupyingUnit != this)
+        {
+            Debug.Log($"Target cell {targetCell.gridPosition} is occupied.");
+            return false;
+        }
+
+        // Calcular coste total del camino
+        float totalCost = 0f;
+        for (int i = 1; i < path.Count; i++)
+        {
+            totalCost += path[i].GetMovementCost();
+        }
+
+        if (totalCost > remainingMovement)
+        {
+            Debug.Log($"Not enough movement for path. Need {totalCost}, have {remainingMovement}");
+            return false;
+        }
+
+        // Ejecutar movimiento
+        if (CurrentCell != null)
+        {
+            CurrentCell.occupyingUnit = null;
+        }
+
+        CurrentCell = targetCell;
+        targetCell.occupyingUnit = this;
+        remainingMovement -= Mathf.CeilToInt(totalCost);
+        hasMovedThisTurn = true;
+
+        transform.position = targetCell.transform.position + Vector3.up * 0.1f;
+
+        Debug.Log($"Unit {gameObject.name} moved along path to {targetCell.gridPosition}");
+        return true;
+    }
+
     public bool AttackUnit(Unit target)
     {
         if (target == null)

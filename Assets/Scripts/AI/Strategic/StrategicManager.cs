@@ -7,11 +7,15 @@ public class StrategicManager : MonoBehaviour
     [Header("Configuration")]
     public int aiPlayerID = 1;
 
-    [Header("Strategic Weights")]
-    [Range(0f, 1f)]
-    public float aggressionLevel = 0.6f;
-    [Range(0f, 1f)]
-    public float economicFocus = 0.3f;
+    [Header("Strategic Weights (Read-Only - Controlled by FSM)")]
+    [SerializeField]
+    private float aggressionLevel = 0.6f;
+    [SerializeField]
+    private float economicFocus = 0.3f;
+
+    [Header("Current State (Read-Only)")]
+    [SerializeField]
+    private StrategicStateType currentStrategicState;
 
     [Header("References")]
     private GameManager gameManager;
@@ -21,7 +25,9 @@ public class StrategicManager : MonoBehaviour
 
     private List<Unit> friendlyUnits;
     private List<Unit> enemyUnits;
-    private DijkstraPathfinding aiPathfinding;
+
+    private StrategicFSM strategicFSM;
+    private StrategicContext strategicContext;
 
     void Start()
     {
@@ -29,7 +35,9 @@ public class StrategicManager : MonoBehaviour
         hexGrid = FindFirstObjectByType<HexGrid>();
         influenceMap = FindObjectOfType<InfluenceMap>();
         tacticalWaypoints = FindObjectOfType<TacticalWaypoints>();
-        aiPathfinding = new DijkstraPathfinding(hexGrid);
+
+        strategicContext = new StrategicContext();
+        strategicFSM = new StrategicFSM(strategicContext);
 
         if (gameManager == null || hexGrid == null)
         {
@@ -41,14 +49,22 @@ public class StrategicManager : MonoBehaviour
     {
         Debug.Log("======== STRATEGIC MANAGER: AI TURN START ========");
 
+        // 1. Analizar estado del juego y actualizar sistemas estratégicos
+        //    (incluye mapa de influencia y waypoints)
         AnalyzeGameState();
 
-        UpdateStrategicSystems();
+        // 2. Actualizar contexto y estado de la FSM
+        UpdateStrategicContext();
+        strategicFSM.Update();
+        ApplyFSMWeights();
 
+        // 3. Asignar órdenes a las unidades
         AssignOrdersToUnits();
 
+        // 4. Ejecutar los behavior trees de cada unidad
         ExecuteUnits();
 
+        // 5. Decisiones de producción
         MakeProductionDecisions();
 
         Debug.Log("======== STRATEGIC MANAGER: AI TURN END ========");
@@ -56,54 +72,86 @@ public class StrategicManager : MonoBehaviour
         gameManager.EndTurn();
     }
 
+    private void UpdateStrategicContext()
+    {
+        strategicContext.FriendlyUnits = friendlyUnits;
+        strategicContext.EnemyUnits = enemyUnits;
+        strategicContext.FriendlyUnitCount = friendlyUnits.Count;
+        strategicContext.EnemyUnitCount = enemyUnits.Count;
+        strategicContext.Resources = gameManager.resourcesPerPlayer[aiPlayerID];
+
+        strategicContext.NumericalAdvantage = (float)friendlyUnits.Count / Mathf.Max(1, enemyUnits.Count);
+
+        int enemyResources = gameManager.resourcesPerPlayer[1 - aiPlayerID];
+        strategicContext.ResourceAdvantage = (float)strategicContext.Resources / Mathf.Max(1, enemyResources);
+
+        strategicContext.IsBaseThreatened = CheckEnemyThreatNearBase();
+
+        strategicContext.TerritorialControl = CalculateTerritorialControl();
+
+        Debug.Log($"[Context] Units: {strategicContext.FriendlyUnitCount} vs {strategicContext.EnemyUnitCount}, " +
+                  $"NumAdv: {strategicContext.NumericalAdvantage:F2}, ResAdv: {strategicContext.ResourceAdvantage:F2}, " +
+                  $"Territory: {strategicContext.TerritorialControl:F2}, BaseThreat: {strategicContext.IsBaseThreatened}");
+    }
+
+    private void ApplyFSMWeights()
+    {
+        var weights = strategicFSM.GetCurrentWeights();
+        aggressionLevel = weights.aggression;
+        economicFocus = weights.economy;
+        currentStrategicState = strategicFSM.CurrentState;
+
+        Debug.Log($"[FSM] State: {currentStrategicState}, Aggression: {aggressionLevel:F2}, Economy: {economicFocus:F2}");
+    }
+
+    private float CalculateTerritorialControl()
+    {
+        if (influenceMap == null) return 0.5f;
+
+        List<HexCell> allCells = hexGrid.GetAllCells();
+        int friendlyControlled = 0;
+        int totalCells = 0;
+
+        foreach (HexCell cell in allCells)
+        {
+            if (cell.terrainType == TerrainType.Agua) continue;
+            totalCells++;
+
+            if (influenceMap.GetNetInfluence(cell) > 0)
+                friendlyControlled++;
+        }
+
+        return totalCells > 0 ? (float)friendlyControlled / totalCells : 0.5f;
+    }
+
+    /// <summary>
+    /// Analiza el estado del juego y actualiza los sistemas estratégicos (mapa de influencia y waypoints).
+    /// Esta función centraliza toda la recopilación de información necesaria para la toma de decisiones.
+    /// </summary>
     private void AnalyzeGameState()
     {
+        // 1. Obtener todas las unidades
         friendlyUnits = gameManager.GetAllUnitsForPlayer(aiPlayerID);
         enemyUnits = gameManager.GetAllUnitsForPlayer(1 - aiPlayerID);
 
-        int friendlyCount = friendlyUnits.Count;
-        int enemyCount = enemyUnits.Count;
+        Debug.Log($"[AnalyzeGameState] Friendly Units: {friendlyUnits.Count}, Enemy Units: {enemyUnits.Count}");
 
-        Debug.Log($"[Analysis] Friendly Units: {friendlyCount}, Enemy Units: {enemyCount}");
-
-        float numericalAdvantage = (float)friendlyCount / Mathf.Max(1, enemyCount);
-        Debug.Log($"[Analysis] Numerical Advantage: {numericalAdvantage:F2}");
-
-        if (numericalAdvantage > 1.5f)
-        {
-            aggressionLevel = 0.8f;
-            economicFocus = 0.2f;
-        }
-        else if (numericalAdvantage < 0.7f)
-        {
-            aggressionLevel = 0.3f;
-            economicFocus = 0.4f;
-        }
-        else
-        {
-            aggressionLevel = 0.6f;
-            economicFocus = 0.3f;
-        }
-
-        Debug.Log($"[Strategy] Aggression: {aggressionLevel:F2}, Economic Focus: {economicFocus:F2}");
-    }
-
-    private void UpdateStrategicSystems()
-    {
-        List<Unit> allUnits = new List<Unit>();
-        allUnits.AddRange(friendlyUnits);
-        allUnits.AddRange(enemyUnits);
-
+        // 2. Actualizar mapa de influencia
         if (influenceMap != null)
         {
+            List<Unit> allUnits = new List<Unit>();
+            allUnits.AddRange(friendlyUnits);
+            allUnits.AddRange(enemyUnits);
+
             influenceMap.UpdateInfluence(allUnits, aiPlayerID);
-            Debug.Log("[Strategic Systems] Influence map updated");
+            Debug.Log("[AnalyzeGameState] Influence map updated");
         }
 
+        // 3. Actualizar waypoints tácticos (depende del mapa de influencia actualizado)
         if (tacticalWaypoints != null)
         {
             tacticalWaypoints.UpdateWaypoints(aiPlayerID, friendlyUnits, enemyUnits);
-            Debug.Log("[Strategic Systems] Tactical waypoints updated");
+            Debug.Log("[AnalyzeGameState] Tactical waypoints updated");
         }
     }
 

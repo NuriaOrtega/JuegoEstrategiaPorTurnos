@@ -84,8 +84,7 @@ public class ArtilleryAI : UnitAI
         HexCell safePosition = FindOptimalFiringPosition(nearestEnemy);
         if (safePosition != null && unit.remainingMovement > 0)
         {
-            aiPathfinding.CreateMap(unit);
-            bool moved = unit.MoveToCell(safePosition, aiPathfinding);
+            bool moved = MoveTowardsTarget(safePosition, avoidDanger: true);
 
             if (moved && !unit.hasAttacked)
             {
@@ -113,6 +112,7 @@ public class ArtilleryAI : UnitAI
 
     private NodeState ExecuteArtillerySupport()
     {
+        // Primero intentar atacar
         if (!unit.hasAttacked)
         {
             Unit bestTarget = FindBestTarget();
@@ -126,30 +126,33 @@ public class ArtilleryAI : UnitAI
             }
         }
 
+        // Luego reposicionarse si es necesario
         Unit nearestEnemy = FindNearestEnemy();
         if (nearestEnemy != null && unit.remainingMovement > 0)
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, nearestEnemy.CurrentCell);
 
+            // Si está demasiado cerca o fuera de rango, buscar posición óptima
             if (distance < SAFE_DISTANCE || distance > unit.attackRange)
             {
                 HexCell optimalPosition = FindOptimalFiringPosition(nearestEnemy);
                 if (optimalPosition != null)
                 {
-                    aiPathfinding.CreateMap(unit);
-                    return unit.MoveToCell(optimalPosition, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+                    bool moved = MoveTowardsTarget(optimalPosition, avoidDanger: true);
+                    return moved ? NodeState.Success : NodeState.Failure;
                 }
             }
         }
 
+        // Si no hay enemigo directo, acercarse a waypoint de ataque
         Waypoint attackWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.Attack);
         if (attackWaypoint != null && unit.remainingMovement > 0)
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, attackWaypoint.cell);
             if (distance > unit.attackRange)
             {
-                aiPathfinding.CreateMap(unit);
-                return unit.MoveToCell(attackWaypoint.cell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+                bool moved = MoveTowardsTarget(attackWaypoint.cell, avoidDanger: true);
+                return moved ? NodeState.Success : NodeState.Failure;
             }
         }
 
@@ -158,6 +161,7 @@ public class ArtilleryAI : UnitAI
 
     private NodeState ExecuteArtilleryDefense()
     {
+        // Primero intentar atacar
         if (!unit.hasAttacked)
         {
             Unit bestTarget = FindBestTarget();
@@ -171,6 +175,7 @@ public class ArtilleryAI : UnitAI
             }
         }
 
+        // Retirarse si el enemigo está demasiado cerca
         Unit nearestEnemy = FindNearestEnemy();
         if (nearestEnemy != null)
         {
@@ -181,58 +186,68 @@ public class ArtilleryAI : UnitAI
                 HexCell retreatCell = FindDefensivePosition();
                 if (retreatCell != null)
                 {
-                    aiPathfinding.CreateMap(unit);
-                    return unit.MoveToCell(retreatCell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+                    bool moved = MoveTowardsTarget(retreatCell, avoidDanger: true);
+                    return moved ? NodeState.Success : NodeState.Failure;
                 }
             }
         }
 
+        // Si no hay amenaza inmediata, ir al waypoint de defensa
         Waypoint defenseWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Defense);
         if (defenseWaypoint != null && unit.remainingMovement > 0)
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, defenseWaypoint.cell);
             if (distance > 2)
             {
-                aiPathfinding.CreateMap(unit);
-                return unit.MoveToCell(defenseWaypoint.cell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+                bool moved = MoveTowardsTarget(defenseWaypoint.cell, avoidDanger: true);
+                return moved ? NodeState.Success : NodeState.Failure;
             }
         }
 
         return NodeState.Success;
     }
 
+    /// <summary>
+    /// Encuentra la mejor posición de disparo: a distancia segura del enemigo,
+    /// dentro del rango de ataque, preferiblemente en terreno elevado.
+    /// </summary>
     private HexCell FindOptimalFiringPosition(Unit enemy)
     {
-        aiPathfinding.CreateMap(unit);
-        var result = aiPathfinding.GetCellsOnRange();
-        List<HexCell> reachableCells = result.Item2;
-
+        List<HexCell> candidates = GetCellsInRange(unit.CurrentCell, unit.remainingMovement);
         HexCell bestPosition = null;
         float bestScore = float.MinValue;
 
-        foreach (HexCell cell in reachableCells)
+        foreach (HexCell cell in candidates)
         {
             if (cell.occupyingUnit != null && cell.occupyingUnit != unit)
                 continue;
 
+            if (!cell.IsPassableForPlayer(unit.OwnerPlayerID))
+                continue;
+
             int distToEnemy = CombatSystem.HexDistance(cell, enemy.CurrentCell);
 
+            // Debe estar dentro del rango de ataque
             if (distToEnemy > unit.attackRange)
                 continue;
 
             float score = 0f;
 
+            // Bonificación por mantener distancia segura
             if (distToEnemy >= SAFE_DISTANCE)
                 score += 5f;
 
+            // Bonificación por terreno elevado (artillería desde montaña es potente)
             if (cell.terrainType == TerrainType.Montaña)
                 score += 2f;
             else if (cell.terrainType == TerrainType.Llanura)
                 score += 1f;
 
+            // Bonificación por zona segura
             if (influenceMap != null && !influenceMap.IsDangerZone(cell))
                 score += 3f;
 
+            // Bonificación por tener amigos cerca (protección)
             List<Unit> friendlyUnits = gameManager.GetAllUnitsForPlayer(unit.OwnerPlayerID);
             foreach (Unit friendly in friendlyUnits)
             {
@@ -253,35 +268,43 @@ public class ArtilleryAI : UnitAI
         return bestPosition;
     }
 
+    /// <summary>
+    /// Encuentra posición defensiva: lejos del enemigo pero dentro de rango si es posible.
+    /// </summary>
     private HexCell FindDefensivePosition()
     {
-        aiPathfinding.CreateMap(unit);
-        var result = aiPathfinding.GetCellsOnRange();
-        List<HexCell> reachableCells = result.Item2;
-
         Unit nearestEnemy = FindNearestEnemy();
         if (nearestEnemy == null)
             return null;
 
+        List<HexCell> candidates = GetCellsInRange(unit.CurrentCell, unit.remainingMovement);
         HexCell bestPosition = null;
         float bestScore = float.MinValue;
 
-        foreach (HexCell cell in reachableCells)
+        foreach (HexCell cell in candidates)
         {
             if (cell.occupyingUnit != null && cell.occupyingUnit != unit)
                 continue;
 
+            if (!cell.IsPassableForPlayer(unit.OwnerPlayerID))
+                continue;
+
             int distToEnemy = CombatSystem.HexDistance(cell, nearestEnemy.CurrentCell);
+
+            // Debe estar a distancia segura
             if (distToEnemy < SAFE_DISTANCE)
                 continue;
 
             float score = 0f;
 
+            // Bonificación por poder atacar desde la posición
             if (distToEnemy <= unit.attackRange)
                 score += 4f;
 
+            // Bonificación por distancia (más lejos = más seguro)
             score += distToEnemy * 0.5f;
 
+            // Bonificación por zona segura
             if (influenceMap != null && influenceMap.IsSafeZone(cell))
                 score += 3f;
 
@@ -295,6 +318,10 @@ public class ArtilleryAI : UnitAI
         return bestPosition;
     }
 
+    /// <summary>
+    /// Encuentra el mejor objetivo para atacar.
+    /// Prioriza unidades heridas y artillería enemiga.
+    /// </summary>
     private Unit FindBestTarget()
     {
         List<Unit> enemies = gameManager.GetAllUnitsForPlayer(1 - unit.OwnerPlayerID);
@@ -312,10 +339,12 @@ public class ArtilleryAI : UnitAI
 
             float score = 0f;
 
+            // Priorizar unidades heridas
             float healthPercent = enemy.GetHealthPercentage();
             if (healthPercent < 0.5f)
                 score += 3f;
 
+            // Priorizar artillería enemiga (amenaza a distancia)
             if (enemy.unitType == UnitType.Artillery)
                 score += 2f;
             else if (enemy.unitType == UnitType.Cavalry)
@@ -329,5 +358,38 @@ public class ArtilleryAI : UnitAI
         }
 
         return bestTarget ?? FindNearestEnemy();
+    }
+
+    /// <summary>
+    /// Obtiene celdas dentro de un rango usando BFS simple.
+    /// </summary>
+    private List<HexCell> GetCellsInRange(HexCell center, int maxDistance)
+    {
+        List<HexCell> cells = new List<HexCell>();
+        Queue<(HexCell cell, int dist)> queue = new Queue<(HexCell, int)>();
+        HashSet<HexCell> visited = new HashSet<HexCell>();
+
+        queue.Enqueue((center, 0));
+        visited.Add(center);
+
+        while (queue.Count > 0)
+        {
+            var (current, dist) = queue.Dequeue();
+            cells.Add(current);
+
+            if (dist < maxDistance)
+            {
+                foreach (HexCell neighbor in current.neighbors)
+                {
+                    if (!visited.Contains(neighbor) && neighbor.IsPassableForPlayer(unit.OwnerPlayerID))
+                    {
+                        visited.Add(neighbor);
+                        queue.Enqueue((neighbor, dist + 1));
+                    }
+                }
+            }
+        }
+
+        return cells;
     }
 }

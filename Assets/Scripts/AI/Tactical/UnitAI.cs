@@ -10,7 +10,7 @@ public class UnitAI : MonoBehaviour
     protected InfluenceMap influenceMap;
     protected TacticalWaypoints tacticalWaypoints;
     protected GameManager gameManager;
-    protected DijkstraPathfinding aiPathfinding;
+    protected TacticalPathfinding tacticalPathfinding;
 
     protected BTNode behaviorTree;
 
@@ -21,7 +21,7 @@ public class UnitAI : MonoBehaviour
         influenceMap = FindObjectOfType<InfluenceMap>();
         tacticalWaypoints = FindObjectOfType<TacticalWaypoints>();
         gameManager = GameManager.Instance;
-        aiPathfinding = new DijkstraPathfinding(hexGrid);
+        tacticalPathfinding = new TacticalPathfinding(hexGrid, influenceMap);
 
         BuildBehaviorTree();
     }
@@ -116,27 +116,31 @@ public class UnitAI : MonoBehaviour
             return ExecuteRetreatBehavior();
         }
 
+        // Primero buscar enemigo cercano
         Unit nearestEnemy = FindNearestEnemy();
         if (nearestEnemy != null)
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, nearestEnemy.CurrentCell);
 
+            // Si está en rango, atacar
             if (distance <= unit.attackRange && !unit.hasAttacked)
             {
                 return unit.AttackUnit(nearestEnemy) ? NodeState.Success : NodeState.Failure;
             }
-            else if (distance <= 5 && unit.remainingMovement > 0)
+
+            // Si está cerca, moverse hacia él (sin evitar peligro en modo ataque)
+            if (distance <= 5 && unit.remainingMovement > 0)
             {
-                aiPathfinding.CreateMap(unit);
-                return unit.MoveToCell(nearestEnemy.CurrentCell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+                bool moved = MoveTowardsTarget(nearestEnemy.CurrentCell, avoidDanger: false);
+                return moved ? NodeState.Success : NodeState.Failure;
             }
         }
 
+        // Si no hay enemigo directo, usar waypoint de ataque
         Waypoint attackWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.Attack);
         if (attackWaypoint != null && unit.remainingMovement > 0)
         {
-            aiPathfinding.CreateMap(unit);
-            bool moved = unit.MoveToCell(attackWaypoint.cell, aiPathfinding);
+            bool moved = MoveTowardsTarget(attackWaypoint.cell, avoidDanger: false);
             return moved ? NodeState.Success : NodeState.Failure;
         }
 
@@ -150,18 +154,21 @@ public class UnitAI : MonoBehaviour
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, nearestEnemy.CurrentCell);
 
+            // Si está en rango, atacar
             if (distance <= unit.attackRange && !unit.hasAttacked)
             {
                 return unit.AttackUnit(nearestEnemy) ? NodeState.Success : NodeState.Failure;
             }
 
+            // Si está cerca, interceptar (pero con precaución)
             if (distance <= 4 && unit.remainingMovement > 0)
             {
-                aiPathfinding.CreateMap(unit);
-                return unit.MoveToCell(nearestEnemy.CurrentCell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+                bool moved = MoveTowardsTarget(nearestEnemy.CurrentCell, avoidDanger: true);
+                return moved ? NodeState.Success : NodeState.Failure;
             }
         }
 
+        // Si no hay enemigo, ir al waypoint de defensa más cercano
         Waypoint defenseWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Defense);
         if (defenseWaypoint != null)
         {
@@ -169,8 +176,7 @@ public class UnitAI : MonoBehaviour
 
             if (distance > 2 && unit.remainingMovement > 0)
             {
-                aiPathfinding.CreateMap(unit);
-                bool moved = unit.MoveToCell(defenseWaypoint.cell, aiPathfinding);
+                bool moved = MoveTowardsTarget(defenseWaypoint.cell, avoidDanger: true);
                 return moved ? NodeState.Success : NodeState.Failure;
             }
         }
@@ -180,16 +186,17 @@ public class UnitAI : MonoBehaviour
 
     protected NodeState ExecuteGatherBehavior()
     {
+        // Si ya estamos en un nodo de recursos no recolectado, éxito
         if (unit.CurrentCell != null && unit.CurrentCell.isResourceNode && !unit.CurrentCell.resourceCollected)
         {
             return NodeState.Success;
         }
 
+        // Buscar el waypoint de recursos más cercano
         Waypoint resourceWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Resource);
         if (resourceWaypoint != null && unit.remainingMovement > 0)
         {
-            aiPathfinding.CreateMap(unit);
-            bool moved = unit.MoveToCell(resourceWaypoint.cell, aiPathfinding);
+            bool moved = MoveTowardsTarget(resourceWaypoint.cell, avoidDanger: true);
             return moved ? NodeState.Success : NodeState.Failure;
         }
 
@@ -198,25 +205,37 @@ public class UnitAI : MonoBehaviour
 
     protected NodeState ExecuteRetreatBehavior()
     {
-        HexCell safeCell = influenceMap?.FindNearestSafeCell(unit.CurrentCell);
+        if (unit.remainingMovement <= 0)
+            return NodeState.Failure;
 
-        if (safeCell != null && unit.remainingMovement > 0)
+        // Si ya estamos en zona segura, éxito
+        if (influenceMap != null && influenceMap.IsSafeZone(unit.CurrentCell))
         {
-            if (safeCell == unit.CurrentCell || influenceMap.IsSafeZone(unit.CurrentCell))
-            {
-                return NodeState.Success;
-            }
+            return NodeState.Success;
+        }
 
-            aiPathfinding.CreateMap(unit);
-            bool moved = unit.MoveToCell(safeCell, aiPathfinding);
+        // Buscar la celda más segura cercana
+        HexCell safeCell = tacticalPathfinding?.FindSafestCell(unit.CurrentCell, unit.remainingMovement, unit);
+
+        if (safeCell != null && safeCell != unit.CurrentCell)
+        {
+            bool moved = MoveTowardsTarget(safeCell, avoidDanger: true);
             return moved ? NodeState.Success : NodeState.Failure;
         }
 
-        HexCell friendlyBase = hexGrid?.GetPlayerBase(unit.OwnerPlayerID);
-        if (friendlyBase != null && unit.remainingMovement > 0)
+        // Si no hay celda segura, buscar waypoint de rally
+        Waypoint rallyWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Rally);
+        if (rallyWaypoint != null)
         {
-            aiPathfinding.CreateMap(unit);
-            bool moved = unit.MoveToCell(friendlyBase, aiPathfinding);
+            bool moved = MoveTowardsTarget(rallyWaypoint.cell, avoidDanger: true);
+            return moved ? NodeState.Success : NodeState.Failure;
+        }
+
+        // Como último recurso, ir a la base amiga
+        HexCell friendlyBase = hexGrid?.GetPlayerBase(unit.OwnerPlayerID);
+        if (friendlyBase != null)
+        {
+            bool moved = MoveTowardsTarget(friendlyBase, avoidDanger: true);
             return moved ? NodeState.Success : NodeState.Failure;
         }
 
@@ -226,6 +245,47 @@ public class UnitAI : MonoBehaviour
     protected NodeState ExecuteIdleBehavior()
     {
         return NodeState.Success;
+    }
+
+    /// <summary>
+    /// Mueve la unidad hacia la celda objetivo usando TacticalPathfinding.
+    /// Si no puede llegar en este turno, se acerca lo más posible.
+    /// </summary>
+    protected bool MoveTowardsTarget(HexCell target, bool avoidDanger = true)
+    {
+        if (target == null || unit.remainingMovement <= 0)
+            return false;
+
+        if (target == unit.CurrentCell)
+            return true; // Ya estamos en el objetivo
+
+        // Calcular camino táctico (A* con influencia)
+        var fullPath = tacticalPathfinding.FindTacticalPath(unit.CurrentCell, target, unit, avoidDanger);
+
+        if (fullPath == null || fullPath.Count < 2)
+        {
+            Debug.Log($"[UnitAI] {gameObject.name} no path found to {target.gridPosition}");
+            return false;
+        }
+
+        // Obtener el sub-camino alcanzable con los puntos de movimiento actuales
+        var reachablePath = tacticalPathfinding.GetReachablePath(fullPath, unit.remainingMovement);
+
+        if (reachablePath == null || reachablePath.Count < 2)
+        {
+            Debug.Log($"[UnitAI] {gameObject.name} cannot reach any cell on path");
+            return false;
+        }
+
+        // Ejecutar movimiento
+        bool moved = unit.MoveAlongPath(reachablePath);
+
+        if (moved)
+        {
+            Debug.Log($"[UnitAI] {gameObject.name} moved towards {target.gridPosition}, reached {unit.CurrentCell.gridPosition}");
+        }
+
+        return moved;
     }
 
     protected Unit FindNearestEnemy()

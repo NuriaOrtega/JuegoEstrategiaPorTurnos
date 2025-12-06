@@ -65,7 +65,6 @@ public class CavalryAI : UnitAI
         if (enemy == null)
             return false;
 
-        aiPathfinding.CreateMap(unit);
         HexCell flankCell = FindFlankingPosition(enemy);
         return flankCell != null;
     }
@@ -76,11 +75,10 @@ public class CavalryAI : UnitAI
         if (enemy == null)
             return NodeState.Failure;
 
-        aiPathfinding.CreateMap(unit);
         HexCell flankCell = FindFlankingPosition(enemy);
         if (flankCell != null && unit.remainingMovement > 0)
         {
-            bool moved = unit.MoveToCell(flankCell, aiPathfinding);
+            bool moved = MoveTowardsTarget(flankCell, avoidDanger: false);
 
             if (moved && !unit.hasAttacked)
             {
@@ -103,18 +101,19 @@ public class CavalryAI : UnitAI
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, nearestEnemy.CurrentCell);
 
+            // Si está en rango, atacar
             if (distance <= unit.attackRange && !unit.hasAttacked)
             {
                 return unit.AttackUnit(nearestEnemy) ? NodeState.Success : NodeState.Failure;
             }
 
+            // Buscar posición de carga
             if (unit.remainingMovement > 0)
             {
-                aiPathfinding.CreateMap(unit);
                 HexCell chargeTarget = FindChargeTarget(nearestEnemy);
                 if (chargeTarget != null)
                 {
-                    bool moved = unit.MoveToCell(chargeTarget, aiPathfinding);
+                    bool moved = MoveTowardsTarget(chargeTarget, avoidDanger: false);
 
                     if (moved && !unit.hasAttacked)
                     {
@@ -129,11 +128,12 @@ public class CavalryAI : UnitAI
             }
         }
 
+        // Si no hay enemigo directo, usar waypoint de ataque
         Waypoint attackWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.Attack);
         if (attackWaypoint != null && unit.remainingMovement > 0)
         {
-            aiPathfinding.CreateMap(unit);
-            return unit.MoveToCell(attackWaypoint.cell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+            bool moved = MoveTowardsTarget(attackWaypoint.cell, avoidDanger: false);
+            return moved ? NodeState.Success : NodeState.Failure;
         }
 
         return NodeState.Failure;
@@ -146,30 +146,33 @@ public class CavalryAI : UnitAI
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, nearestEnemy.CurrentCell);
 
+            // Si está en rango, atacar
             if (distance <= unit.attackRange && !unit.hasAttacked)
             {
                 return unit.AttackUnit(nearestEnemy) ? NodeState.Success : NodeState.Failure;
             }
 
+            // Interceptar enemigos cercanos
             if (distance <= 4 && distance > unit.attackRange && unit.remainingMovement > 0)
             {
                 HexCell interceptCell = FindInterceptPosition(nearestEnemy);
                 if (interceptCell != null)
                 {
-                    aiPathfinding.CreateMap(unit);
-                    return unit.MoveToCell(interceptCell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+                    bool moved = MoveTowardsTarget(interceptCell, avoidDanger: true);
+                    return moved ? NodeState.Success : NodeState.Failure;
                 }
             }
         }
 
+        // Si no hay enemigo, patrullar hacia waypoint de defensa
         Waypoint defenseWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Defense);
         if (defenseWaypoint != null && unit.remainingMovement > 0)
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, defenseWaypoint.cell);
             if (distance > 2)
             {
-                aiPathfinding.CreateMap(unit);
-                return unit.MoveToCell(defenseWaypoint.cell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+                bool moved = MoveTowardsTarget(defenseWaypoint.cell, avoidDanger: true);
+                return moved ? NodeState.Success : NodeState.Failure;
             }
         }
 
@@ -178,16 +181,19 @@ public class CavalryAI : UnitAI
 
     private NodeState ExecuteResourceRaid()
     {
+        // Si ya estamos en un nodo de recursos, éxito
         if (unit.CurrentCell != null && unit.CurrentCell.isResourceNode && !unit.CurrentCell.resourceCollected)
         {
             return NodeState.Success;
         }
 
+        // Buscar waypoint de recursos
         Waypoint resourceWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Resource);
         if (resourceWaypoint != null && unit.remainingMovement > 0)
         {
-            aiPathfinding.CreateMap(unit);
-            return unit.MoveToCell(resourceWaypoint.cell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+            // La caballería es rápida, puede arriesgarse más
+            bool moved = MoveTowardsTarget(resourceWaypoint.cell, avoidDanger: false);
+            return moved ? NodeState.Success : NodeState.Failure;
         }
 
         return NodeState.Failure;
@@ -195,6 +201,7 @@ public class CavalryAI : UnitAI
 
     private NodeState ExecuteFastRetreat()
     {
+        // Buscar celda segura más cercana
         HexCell safeCell = influenceMap?.FindNearestSafeCell(unit.CurrentCell);
 
         if (safeCell != null && unit.remainingMovement > 0)
@@ -204,25 +211,34 @@ public class CavalryAI : UnitAI
                 return NodeState.Success;
             }
 
-            aiPathfinding.CreateMap(unit);
-            return unit.MoveToCell(safeCell, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+            bool moved = MoveTowardsTarget(safeCell, avoidDanger: true);
+            return moved ? NodeState.Success : NodeState.Failure;
         }
 
+        // Si no hay celda segura, buscar waypoint de rally
+        Waypoint rallyWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Rally);
+        if (rallyWaypoint != null && unit.remainingMovement > 0)
+        {
+            bool moved = MoveTowardsTarget(rallyWaypoint.cell, avoidDanger: true);
+            return moved ? NodeState.Success : NodeState.Failure;
+        }
+
+        // Como último recurso, ir a la base
         HexCell friendlyBase = hexGrid?.GetPlayerBase(unit.OwnerPlayerID);
         if (friendlyBase != null && unit.remainingMovement > 0)
         {
-            aiPathfinding.CreateMap(unit);
-            return unit.MoveToCell(friendlyBase, aiPathfinding) ? NodeState.Success : NodeState.Failure;
+            bool moved = MoveTowardsTarget(friendlyBase, avoidDanger: true);
+            return moved ? NodeState.Success : NodeState.Failure;
         }
 
         return NodeState.Failure;
     }
 
+    /// <summary>
+    /// Busca posición de flanqueo - la caballería prefiere llanuras para cargar.
+    /// </summary>
     private HexCell FindFlankingPosition(Unit enemy)
     {
-        var result = aiPathfinding.GetCellsOnRange();
-        List<HexCell> reachableCells = result.Item2;
-
         List<HexCell> neighbors = enemy.CurrentCell.neighbors;
         HexCell bestFlank = null;
         float bestScore = float.MinValue;
@@ -232,17 +248,20 @@ public class CavalryAI : UnitAI
             if (cell.occupyingUnit != null)
                 continue;
 
-            if (!reachableCells.Contains(cell))
+            if (!cell.IsPassableForPlayer(unit.OwnerPlayerID))
                 continue;
 
             float score = 0f;
 
+            // La caballería prefiere llanuras para carga
             if (cell.terrainType == TerrainType.Llanura)
                 score += 3f;
 
+            // Bonificación por zona segura
             if (influenceMap != null && !influenceMap.IsDangerZone(cell))
                 score += 2f;
 
+            // Bonificación por no tener amigos cerca (flanqueo real)
             List<Unit> friendlyUnits = gameManager.GetAllUnitsForPlayer(unit.OwnerPlayerID);
             bool hasFriendlyNearby = false;
             foreach (Unit friendly in friendlyUnits)
@@ -256,6 +275,10 @@ public class CavalryAI : UnitAI
             if (!hasFriendlyNearby)
                 score += 1.5f;
 
+            // Penalización por distancia
+            int distance = CombatSystem.HexDistance(unit.CurrentCell, cell);
+            score -= distance * 0.3f;
+
             if (score > bestScore)
             {
                 bestScore = score;
@@ -266,11 +289,11 @@ public class CavalryAI : UnitAI
         return bestFlank;
     }
 
+    /// <summary>
+    /// Busca la mejor posición para cargar contra el enemigo.
+    /// </summary>
     private HexCell FindChargeTarget(Unit enemy)
     {
-        var result = aiPathfinding.GetCellsOnRange();
-        List<HexCell> reachableCells = result.Item2;
-
         List<HexCell> neighbors = enemy.CurrentCell.neighbors;
         HexCell bestTarget = null;
         float bestScore = float.MinValue;
@@ -280,13 +303,18 @@ public class CavalryAI : UnitAI
             if (cell.occupyingUnit != null)
                 continue;
 
-            if (!reachableCells.Contains(cell))
+            if (!cell.IsPassableForPlayer(unit.OwnerPlayerID))
                 continue;
 
             float score = 0f;
 
+            // Preferir llanuras para carga
             if (cell.terrainType == TerrainType.Llanura)
                 score += 2f;
+
+            // Penalización por distancia
+            int distance = CombatSystem.HexDistance(unit.CurrentCell, cell);
+            score -= distance * 0.3f;
 
             if (score > bestScore)
             {
@@ -298,32 +326,39 @@ public class CavalryAI : UnitAI
         return bestTarget;
     }
 
+    /// <summary>
+    /// Busca posición para interceptar al enemigo antes de que llegue a la base.
+    /// </summary>
     private HexCell FindInterceptPosition(Unit enemy)
     {
-        HexCell enemyBase = hexGrid?.GetPlayerBase(1 - unit.OwnerPlayerID);
         HexCell friendlyBase = hexGrid?.GetPlayerBase(unit.OwnerPlayerID);
 
         if (friendlyBase == null)
             return enemy.CurrentCell;
 
-        aiPathfinding.CreateMap(unit);
-        var result = aiPathfinding.GetCellsOnRange();
-        List<HexCell> reachableCells = result.Item2;
-
+        // Buscar celdas cercanas donde pueda interceptar
+        List<HexCell> candidates = GetCellsInRange(unit.CurrentCell, unit.remainingMovement);
         HexCell bestIntercept = null;
         float bestScore = float.MinValue;
 
-        foreach (HexCell cell in reachableCells)
+        foreach (HexCell cell in candidates)
         {
             if (cell.occupyingUnit != null && cell.occupyingUnit != unit)
+                continue;
+
+            if (!cell.IsPassableForPlayer(unit.OwnerPlayerID))
                 continue;
 
             int distToEnemy = CombatSystem.HexDistance(cell, enemy.CurrentCell);
             int distToBase = CombatSystem.HexDistance(cell, friendlyBase);
 
             float score = 0f;
+
+            // Bonificación por estar cerca del enemigo
             if (distToEnemy <= unit.attackRange + 1)
                 score += 3f;
+
+            // Bonificación por estar entre el enemigo y la base
             if (distToBase < CombatSystem.HexDistance(enemy.CurrentCell, friendlyBase))
                 score += 2f;
 
@@ -335,5 +370,38 @@ public class CavalryAI : UnitAI
         }
 
         return bestIntercept;
+    }
+
+    /// <summary>
+    /// Obtiene celdas dentro de un rango usando BFS simple.
+    /// </summary>
+    private List<HexCell> GetCellsInRange(HexCell center, int maxDistance)
+    {
+        List<HexCell> cells = new List<HexCell>();
+        Queue<(HexCell cell, int dist)> queue = new Queue<(HexCell, int)>();
+        HashSet<HexCell> visited = new HashSet<HexCell>();
+
+        queue.Enqueue((center, 0));
+        visited.Add(center);
+
+        while (queue.Count > 0)
+        {
+            var (current, dist) = queue.Dequeue();
+            cells.Add(current);
+
+            if (dist < maxDistance)
+            {
+                foreach (HexCell neighbor in current.neighbors)
+                {
+                    if (!visited.Contains(neighbor) && neighbor.IsPassableForPlayer(unit.OwnerPlayerID))
+                    {
+                        visited.Add(neighbor);
+                        queue.Enqueue((neighbor, dist + 1));
+                    }
+                }
+            }
+        }
+
+        return cells;
     }
 }
