@@ -22,61 +22,27 @@ public class StrategicFSM
         currentState = StrategicStateType.Balanced;
     }
 
+    /// <summary>
+    /// Fuerza la ejecucion de OnEnter del estado inicial.
+    /// Debe llamarse despues de crear la FSM para establecer los pesos iniciales.
+    /// </summary>
+    public void ForceInitialState()
+    {
+        states[currentState].OnEnter(context);
+    }
+
     public void Update()
     {
-        StrategicStateType newState = EvaluateTransitions();
-        if (newState != currentState)
+        // Cada estado evalua sus propias transiciones
+        StrategicStateType? newState = states[currentState].CheckTransitions(context);
+
+        if (newState.HasValue && newState.Value != currentState)
         {
-            Debug.Log($"[FSM] State transition: {currentState} -> {newState}");
+            Debug.Log($"[FSM] Transition: {currentState} -> {newState.Value}");
             states[currentState].OnExit(context);
-            currentState = newState;
-            states[currentState].OnEnter(context);
+            currentState = newState.Value;
+            states[currentState].OnEnter(context);  // Aqui se asignan los pesos
         }
-    }
-
-    public void Execute()
-    {
-        states[currentState].Execute(context);
-    }
-
-    public (float aggression, float economy) GetCurrentWeights()
-    {
-        return states[currentState].GetWeights();
-    }
-
-    private StrategicStateType EvaluateTransitions()
-    {
-        float numericalAdvantage = context.NumericalAdvantage;
-        float resourceAdvantage = context.ResourceAdvantage;
-        bool baseThreatened = context.IsBaseThreatened;
-        float territorialControl = context.TerritorialControl;
-
-        if (baseThreatened)
-        {
-            return StrategicStateType.Defensive;
-        }
-
-        if (numericalAdvantage > 1.8f && territorialControl > 0.5f)
-        {
-            return StrategicStateType.Aggressive;
-        }
-
-        if (numericalAdvantage < 0.5f)
-        {
-            return StrategicStateType.Defensive;
-        }
-
-        if (resourceAdvantage < 0.5f && numericalAdvantage > 0.8f)
-        {
-            return StrategicStateType.Economic;
-        }
-
-        if (numericalAdvantage > 1.3f)
-        {
-            return StrategicStateType.Aggressive;
-        }
-
-        return StrategicStateType.Balanced;
     }
 }
 
@@ -91,34 +57,46 @@ public class StrategicContext
     public int Resources { get; set; }
     public List<Unit> FriendlyUnits { get; set; }
     public List<Unit> EnemyUnits { get; set; }
+
+    // Pesos estrategicos - asignados por OnEnter() de cada estado
+    public float AggressionLevel { get; set; }
+    public float EconomicFocus { get; set; }
 }
 
 public interface IStrategicState
 {
     void OnEnter(StrategicContext context);
-    void Execute(StrategicContext context);
     void OnExit(StrategicContext context);
-    (float aggression, float economy) GetWeights();
+    StrategicStateType? CheckTransitions(StrategicContext context);
 }
 
 public class AggressiveState : IStrategicState
 {
     public void OnEnter(StrategicContext context)
     {
-        Debug.Log("[FSM] Entering AGGRESSIVE state - Focus on attack!");
-    }
-
-    public void Execute(StrategicContext context)
-    {
+        context.AggressionLevel = 0.8f;
+        context.EconomicFocus = 0.1f;
+        Debug.Log("[FSM] Entering AGGRESSIVE - Weights: Aggression=0.8, Economy=0.1");
     }
 
     public void OnExit(StrategicContext context)
     {
+        Debug.Log("[FSM] Exiting AGGRESSIVE state");
     }
 
-    public (float aggression, float economy) GetWeights()
+    public StrategicStateType? CheckTransitions(StrategicContext context)
     {
-        return (0.8f, 0.1f);
+        // Salir de Aggressive si:
+        if (context.IsBaseThreatened)
+            return StrategicStateType.Defensive;
+
+        if (context.NumericalAdvantage < 0.8f)
+            return StrategicStateType.Balanced;
+
+        if (context.ResourceAdvantage < 0.3f)
+            return StrategicStateType.Economic;
+
+        return null;  // Permanecer en este estado
     }
 }
 
@@ -126,20 +104,26 @@ public class DefensiveState : IStrategicState
 {
     public void OnEnter(StrategicContext context)
     {
-        Debug.Log("[FSM] Entering DEFENSIVE state - Protect the base!");
-    }
-
-    public void Execute(StrategicContext context)
-    {
+        context.AggressionLevel = 0.2f;
+        context.EconomicFocus = 0.3f;
+        Debug.Log("[FSM] Entering DEFENSIVE - Weights: Aggression=0.2, Economy=0.3");
     }
 
     public void OnExit(StrategicContext context)
     {
+        Debug.Log("[FSM] Exiting DEFENSIVE state");
     }
 
-    public (float aggression, float economy) GetWeights()
+    public StrategicStateType? CheckTransitions(StrategicContext context)
     {
-        return (0.2f, 0.3f);
+        // Salir de Defensive si:
+        if (!context.IsBaseThreatened && context.NumericalAdvantage > 1.5f)
+            return StrategicStateType.Aggressive;
+
+        if (!context.IsBaseThreatened && context.NumericalAdvantage > 1.0f)
+            return StrategicStateType.Balanced;
+
+        return null;
     }
 }
 
@@ -147,20 +131,29 @@ public class EconomicState : IStrategicState
 {
     public void OnEnter(StrategicContext context)
     {
-        Debug.Log("[FSM] Entering ECONOMIC state - Gather resources!");
-    }
-
-    public void Execute(StrategicContext context)
-    {
+        context.AggressionLevel = 0.3f;
+        context.EconomicFocus = 0.6f;
+        Debug.Log("[FSM] Entering ECONOMIC - Weights: Aggression=0.3, Economy=0.6");
     }
 
     public void OnExit(StrategicContext context)
     {
+        Debug.Log("[FSM] Exiting ECONOMIC state");
     }
 
-    public (float aggression, float economy) GetWeights()
+    public StrategicStateType? CheckTransitions(StrategicContext context)
     {
-        return (0.3f, 0.6f);
+        // Salir de Economic si:
+        if (context.IsBaseThreatened)
+            return StrategicStateType.Defensive;
+
+        if (context.ResourceAdvantage > 1.5f && context.NumericalAdvantage > 1.3f)
+            return StrategicStateType.Aggressive;
+
+        if (context.ResourceAdvantage > 1.0f)
+            return StrategicStateType.Balanced;
+
+        return null;
     }
 }
 
@@ -168,19 +161,34 @@ public class BalancedState : IStrategicState
 {
     public void OnEnter(StrategicContext context)
     {
-        Debug.Log("[FSM] Entering BALANCED state - Maintain equilibrium");
-    }
-
-    public void Execute(StrategicContext context)
-    {
+        context.AggressionLevel = 0.5f;
+        context.EconomicFocus = 0.3f;
+        Debug.Log("[FSM] Entering BALANCED - Weights: Aggression=0.5, Economy=0.3");
     }
 
     public void OnExit(StrategicContext context)
     {
+        Debug.Log("[FSM] Exiting BALANCED state");
     }
 
-    public (float aggression, float economy) GetWeights()
+    public StrategicStateType? CheckTransitions(StrategicContext context)
     {
-        return (0.5f, 0.3f);
+        // Transiciones desde Balanced:
+        if (context.IsBaseThreatened)
+            return StrategicStateType.Defensive;
+
+        if (context.NumericalAdvantage > 1.8f && context.TerritorialControl > 0.5f)
+            return StrategicStateType.Aggressive;
+
+        if (context.NumericalAdvantage < 0.5f)
+            return StrategicStateType.Defensive;
+
+        if (context.ResourceAdvantage < 0.5f && context.NumericalAdvantage > 0.8f)
+            return StrategicStateType.Economic;
+
+        if (context.NumericalAdvantage > 1.3f)
+            return StrategicStateType.Aggressive;
+
+        return null;
     }
 }

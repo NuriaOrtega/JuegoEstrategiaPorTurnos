@@ -39,6 +39,9 @@ public class StrategicManager : MonoBehaviour
         strategicContext = new StrategicContext();
         strategicFSM = new StrategicFSM(strategicContext);
 
+        // Forzar OnEnter del estado inicial para establecer pesos
+        strategicFSM.ForceInitialState();
+
         if (gameManager == null || hexGrid == null)
         {
             Debug.LogError("StrategicManager: Missing critical references!");
@@ -96,9 +99,9 @@ public class StrategicManager : MonoBehaviour
 
     private void ApplyFSMWeights()
     {
-        var weights = strategicFSM.GetCurrentWeights();
-        aggressionLevel = weights.aggression;
-        economicFocus = weights.economy;
+        // Los pesos ya estan en el contexto (asignados por OnEnter de cada estado)
+        aggressionLevel = strategicContext.AggressionLevel;
+        economicFocus = strategicContext.EconomicFocus;
         currentStrategicState = strategicFSM.CurrentState;
 
         Debug.Log($"[FSM] State: {currentStrategicState}, Aggression: {aggressionLevel:F2}, Economy: {economicFocus:F2}");
