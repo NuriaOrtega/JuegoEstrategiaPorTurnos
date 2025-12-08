@@ -120,6 +120,16 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        // Verificar si alguna unidad ya se movió
+        foreach (Unit unit in gameManager.GetAllUnitsForPlayer(0))
+        {
+            if (unit.hasMovedThisTurn)
+            {
+                Debug.Log("Cannot produce units: A unit has already moved this turn!");
+                return;
+            }
+        }
+
         if (gameManager.resourcesPerPlayer[0] < cost)
         {
             Debug.Log($"Cannot produce {unitType}: Not enough resources. Need {cost}, have {gameManager.resourcesPerPlayer[0]}");

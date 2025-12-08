@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -24,6 +25,9 @@ public class Unit : MonoBehaviour
 
     [Header("AI Order")]
     public OrderType currentOrder = OrderType.Idle;
+
+    [Header("Movement Animation")]
+    public float moveSpeed = 5f;
 
     // Bonus de terreno para evaluación de posiciones (usado por IA)
     public Dictionary<TerrainType, float> terrainBonus;
@@ -141,7 +145,8 @@ public class Unit : MonoBehaviour
         remainingMovement -= Mathf.CeilToInt(totalCost);
         hasMovedThisTurn = true;
 
-        transform.position = targetCell.transform.position + Vector3.up * 0.1f;
+        // Animar el movimiento a través del camino
+        StartCoroutine(AnimateMovement(path));
 
         Debug.Log($"Unit {gameObject.name} moved to {targetCell.gridPosition}");
         return true;
@@ -196,10 +201,37 @@ public class Unit : MonoBehaviour
         remainingMovement -= Mathf.CeilToInt(totalCost);
         hasMovedThisTurn = true;
 
-        transform.position = targetCell.transform.position + Vector3.up * 0.1f;
+        // Animar el movimiento a través del camino
+        StartCoroutine(AnimateMovement(path));
 
         Debug.Log($"Unit {gameObject.name} moved along path to {targetCell.gridPosition}");
         return true;
+    }
+
+    /// <summary>
+    /// Anima el movimiento de la unidad a través del camino.
+    /// </summary>
+    private IEnumerator AnimateMovement(List<HexCell> path)
+    {
+        for (int i = 1; i < path.Count; i++)
+        {
+            Vector3 startPos = transform.position;
+            Vector3 endPos = path[i].transform.position + Vector3.up * 0.1f;
+
+            float distance = Vector3.Distance(startPos, endPos);
+            float duration = distance / moveSpeed;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                transform.position = Vector3.Lerp(startPos, endPos, t);
+                yield return null;
+            }
+
+            transform.position = endPos;
+        }
     }
 
     public bool AttackUnit(Unit target)

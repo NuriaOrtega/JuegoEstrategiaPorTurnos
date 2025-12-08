@@ -247,6 +247,7 @@ public class GameManager : MonoBehaviour
             else
             {
                 selectedUnit.MoveToCell(cell, pathfinding);
+                CheckVictoryConditions();
                 selectedUnit = null;
                 hexGrid.ClearGridColours();
             }

@@ -39,6 +39,7 @@ public class HexCell : MonoBehaviour
         if (hexRenderer != null)
         {
             originalColor = hexRenderer.material.color;
+            actualColor = originalColor;
         }
     }
 
