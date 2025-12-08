@@ -247,10 +247,7 @@ public class UnitAI : MonoBehaviour
         return NodeState.Success;
     }
 
-    /// <summary>
-    /// Mueve la unidad hacia la celda objetivo usando TacticalPathfinding.
-    /// Si no puede llegar en este turno, se acerca lo más posible.
-    /// </summary>
+  
     protected bool MoveTowardsTarget(HexCell target, bool avoidDanger = true)
     {
         if (target == null || unit.remainingMovement <= 0)
@@ -304,9 +301,8 @@ public class UnitAI : MonoBehaviour
         return moved;
     }
 
-    /// <summary>
-    /// Busca la celda libre más cercana al objetivo.
-    /// </summary>
+
+    // Busca la celda libre más cercana al objetivo.
     private HexCell FindNearestFreeNeighbor(HexCell target)
     {
         HexCell best = null;
@@ -352,10 +348,7 @@ public class UnitAI : MonoBehaviour
 
         return nearest;
     }
-
-    /// <summary>
-    /// Condición para BT: ¿Puede la unidad alcanzar la base enemiga en este turno?
-    /// </summary>
+    // Condición para BT: ¿Puede la unidad alcanzar la base enemiga en este turno?
     protected bool CanInvadeEnemyBase()
     {
         if (unit.remainingMovement <= 0)
@@ -369,9 +362,7 @@ public class UnitAI : MonoBehaviour
         return distance <= unit.remainingMovement;
     }
 
-    /// <summary>
-    /// Acción para BT: Invadir la base enemiga.
-    /// </summary>
+    // Acción para BT: Invadir la base enemiga.
     protected NodeState InvadeEnemyBase()
     {
         Waypoint enemyBaseWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.EnemyBase);
@@ -386,11 +377,6 @@ public class UnitAI : MonoBehaviour
         return moved ? NodeState.Success : NodeState.Failure;
     }
 
-    #region Funciones Parametrizadas
-
-    /// <summary>
-    /// Obtiene celdas dentro de un rango usando BFS.
-    /// </summary>
     protected List<HexCell> GetCellsInRange(HexCell center, int maxDistance)
     {
         List<HexCell> cells = new List<HexCell>();
@@ -421,9 +407,6 @@ public class UnitAI : MonoBehaviour
         return cells;
     }
 
-    /// <summary>
-    /// Verifica si una celda es válida para movimiento.
-    /// </summary>
     protected bool IsCellValidForMovement(HexCell cell)
     {
         if (cell.occupyingUnit != null && cell.occupyingUnit != unit)
@@ -435,9 +418,7 @@ public class UnitAI : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Evalúa el score de una celda según el perfil de terreno de la unidad.
-    /// </summary>
+    // Evalúa el score de una celda según el perfil de terreno de la unidad.
     protected float EvaluateCellScore(HexCell cell, Unit enemy = null, int safeDistance = 0)
     {
         float score = 0f;
@@ -475,9 +456,7 @@ public class UnitAI : MonoBehaviour
         return score;
     }
 
-    /// <summary>
-    /// Busca la mejor posición cerca de un enemigo.
-    /// </summary>
+    // Busca la mejor posición cerca de un enemigo.
     protected HexCell FindBestPosition(Unit enemy, int safeDistance = 0)
     {
         if (enemy == null)
@@ -518,9 +497,7 @@ public class UnitAI : MonoBehaviour
         return bestCell;
     }
 
-    /// <summary>
-    /// Acción de ataque parametrizada.
-    /// </summary>
+    // Acción de ataque parametrizada.
     protected NodeState ExecuteAttackAction(int safeDistance = 0, bool avoidDanger = false)
     {
         Unit enemy = FindNearestEnemy();
@@ -576,9 +553,7 @@ public class UnitAI : MonoBehaviour
         return unit.hasAttacked ? NodeState.Success : NodeState.Failure;
     }
 
-    /// <summary>
-    /// Acción de defensa parametrizada.
-    /// </summary>
+    // Acción de defensa parametrizada.
     protected NodeState ExecuteDefendAction(int safeDistance = 0)
     {
         Unit enemy = FindNearestEnemy();
@@ -637,5 +612,4 @@ public class UnitAI : MonoBehaviour
         return NodeState.Success;
     }
 
-    #endregion
 }

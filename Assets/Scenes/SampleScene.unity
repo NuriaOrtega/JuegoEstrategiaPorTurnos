@@ -1724,9 +1724,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   currentPlayerTurn: 0
   gameOver: 0
-  victoriaImage: {fileID: 0}
-  derrotaImage: {fileID: 0}
-  menuButton: {fileID: 0}
+  victoriaImage: {fileID: 2120771389}
+  derrotaImage: {fileID: 1016398160}
+  menuButton: {fileID: 1592070212}
   player0Units: []
   player1Units: []
   resourcesPerPlayer: 3200000032000000
@@ -2645,9 +2645,9 @@ RectTransform:
   - {fileID: 1408979243}
   - {fileID: 53717713}
   - {fileID: 798187835}
-  - {fileID: 1592070213}
   - {fileID: 2120771390}
   - {fileID: 1016398161}
+  - {fileID: 1592070213}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -3321,9 +3321,9 @@ SceneRoots:
   - {fileID: 51409463}
   - {fileID: 1967780722}
   - {fileID: 1563835681}
-  - {fileID: 1601006462}
   - {fileID: 735839439}
   - {fileID: 301673364}
   - {fileID: 1003344401}
   - {fileID: 1000101928}
   - {fileID: 917585398}
+  - {fileID: 1601006462}

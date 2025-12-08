@@ -22,10 +22,7 @@ public class StrategicFSM
         currentState = StrategicStateType.Balanced;
     }
 
-    /// <summary>
-    /// Fuerza la ejecucion de OnEnter del estado inicial.
-    /// Debe llamarse despues de crear la FSM para establecer los pesos iniciales.
-    /// </summary>
+ 
     public void ForceInitialState()
     {
         states[currentState].OnEnter(context);
