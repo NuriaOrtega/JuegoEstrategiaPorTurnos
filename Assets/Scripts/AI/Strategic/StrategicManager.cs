@@ -163,9 +163,26 @@ public class StrategicManager : MonoBehaviour
         int resources = gameManager.resourcesPerPlayer[aiPlayerID];
         HexCell baseCell = hexGrid.GetPlayerBase(aiPlayerID);
 
-        if (baseCell == null || baseCell.occupyingUnit != null)
+        if (baseCell == null)
         {
-            Debug.Log("[Production] Base unavailable for production");
+            Debug.Log("[Production] Base not found");
+            return;
+        }
+
+        // Buscar celda vecina libre para producir (no en la base misma)
+        HexCell spawnCell = null;
+        foreach (HexCell neighbor in baseCell.neighbors)
+        {
+            if (neighbor.IsPassable() && neighbor.occupyingUnit == null)
+            {
+                spawnCell = neighbor;
+                break;
+            }
+        }
+
+        if (spawnCell == null)
+        {
+            Debug.Log("[Production] No free adjacent cell for production");
             return;
         }
 
@@ -174,10 +191,10 @@ public class StrategicManager : MonoBehaviour
 
         if (resources >= stats.cost)
         {
-            Unit newUnit = gameManager.SpawnUnit(unitToProduce, baseCell, aiPlayerID);
+            Unit newUnit = gameManager.SpawnUnit(unitToProduce, spawnCell, aiPlayerID);
             if (newUnit != null)
             {
-                Debug.Log($"[Production] Produced {unitToProduce} for {stats.cost} resources");
+                Debug.Log($"[Production] Produced {unitToProduce} for {stats.cost} resources at {spawnCell.gridPosition}");
             }
         }
         else

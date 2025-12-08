@@ -7,7 +7,8 @@ public enum WaypointType
     Attack,
     Defense,
     Rally,
-    Resource
+    Resource,
+    EnemyBase   // Prioridad 10 exclusiva - objetivo de invasión
 }
 
 public class Waypoint
@@ -60,12 +61,14 @@ public class TacticalWaypoints : MonoBehaviour
     {
         int enemyPlayerID = 1 - aiPlayerID;
 
+        // Base enemiga como tipo EnemyBase (prioridad 10 exclusiva)
         HexCell enemyBase = hexGrid.GetPlayerBase(enemyPlayerID);
         if (enemyBase != null)
         {
-            waypoints.Add(new Waypoint(enemyBase, WaypointType.Attack, 10, aiPlayerID));
+            waypoints.Add(new Waypoint(enemyBase, WaypointType.EnemyBase, 10, aiPlayerID));
         }
 
+        // Otros waypoints de ataque (recursos disputados)
         List<HexCell> allCells = hexGrid.GetAllCells();
         foreach (HexCell cell in allCells)
         {
@@ -260,6 +263,9 @@ public class TacticalWaypoints : MonoBehaviour
                     break;
                 case WaypointType.Resource:
                     color = Color.yellow;
+                    break;
+                case WaypointType.EnemyBase:
+                    color = Color.magenta;
                     break;
                 default:
                     color = Color.white;

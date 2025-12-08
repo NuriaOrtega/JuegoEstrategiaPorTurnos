@@ -312,4 +312,275 @@ public class UnitAI : MonoBehaviour
 
         return nearest;
     }
+
+    /// <summary>
+    /// Condición para BT: ¿Puede la unidad alcanzar la base enemiga en este turno?
+    /// </summary>
+    protected bool CanInvadeEnemyBase()
+    {
+        if (unit.remainingMovement <= 0)
+            return false;
+
+        Waypoint enemyBaseWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.EnemyBase);
+        if (enemyBaseWaypoint == null)
+            return false;
+
+        int distance = CombatSystem.HexDistance(unit.CurrentCell, enemyBaseWaypoint.cell);
+        return distance <= unit.remainingMovement;
+    }
+
+    /// <summary>
+    /// Acción para BT: Invadir la base enemiga.
+    /// </summary>
+    protected NodeState InvadeEnemyBase()
+    {
+        Waypoint enemyBaseWaypoint = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.EnemyBase);
+        if (enemyBaseWaypoint == null)
+            return NodeState.Failure;
+
+        bool moved = MoveTowardsTarget(enemyBaseWaypoint.cell, avoidDanger: false);
+        if (moved)
+        {
+            Debug.Log($"[{unit.unitType}] Invading enemy base at {enemyBaseWaypoint.cell.gridPosition}!");
+        }
+        return moved ? NodeState.Success : NodeState.Failure;
+    }
+
+    #region Funciones Parametrizadas
+
+    /// <summary>
+    /// Obtiene celdas dentro de un rango usando BFS.
+    /// </summary>
+    protected List<HexCell> GetCellsInRange(HexCell center, int maxDistance)
+    {
+        List<HexCell> cells = new List<HexCell>();
+        Queue<(HexCell cell, int dist)> queue = new Queue<(HexCell, int)>();
+        HashSet<HexCell> visited = new HashSet<HexCell>();
+
+        queue.Enqueue((center, 0));
+        visited.Add(center);
+
+        while (queue.Count > 0)
+        {
+            var (current, dist) = queue.Dequeue();
+            cells.Add(current);
+
+            if (dist < maxDistance)
+            {
+                foreach (HexCell neighbor in current.neighbors)
+                {
+                    if (!visited.Contains(neighbor) && neighbor.IsPassableForPlayer(unit.OwnerPlayerID))
+                    {
+                        visited.Add(neighbor);
+                        queue.Enqueue((neighbor, dist + 1));
+                    }
+                }
+            }
+        }
+
+        return cells;
+    }
+
+    /// <summary>
+    /// Verifica si una celda es válida para movimiento.
+    /// </summary>
+    protected bool IsCellValidForMovement(HexCell cell)
+    {
+        if (cell.occupyingUnit != null && cell.occupyingUnit != unit)
+            return false;
+
+        if (!cell.IsPassableForPlayer(unit.OwnerPlayerID))
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Evalúa el score de una celda según el perfil de terreno de la unidad.
+    /// </summary>
+    protected float EvaluateCellScore(HexCell cell, Unit enemy = null, int safeDistance = 0)
+    {
+        float score = 0f;
+
+        // Bonus de terreno según tipo de unidad
+        if (unit.terrainBonus != null && unit.terrainBonus.TryGetValue(cell.terrainType, out float bonus))
+        {
+            score += bonus;
+        }
+
+        // Bonus por zona segura
+        if (influenceMap != null && !influenceMap.IsDangerZone(cell))
+        {
+            score += 2f;
+        }
+
+        // Evaluación respecto al enemigo
+        if (enemy != null)
+        {
+            int distToEnemy = CombatSystem.HexDistance(cell, enemy.CurrentCell);
+
+            // Bonus por estar en rango de ataque
+            if (distToEnemy <= unit.attackRange)
+            {
+                score += 3f;
+            }
+
+            // Bonus por mantener distancia segura (Artillery)
+            if (safeDistance > 0 && distToEnemy >= safeDistance)
+            {
+                score += 4f;
+            }
+        }
+
+        return score;
+    }
+
+    /// <summary>
+    /// Busca la mejor posición cerca de un enemigo.
+    /// </summary>
+    protected HexCell FindBestPosition(Unit enemy, int safeDistance = 0)
+    {
+        if (enemy == null)
+            return null;
+
+        List<HexCell> candidates = GetCellsInRange(unit.CurrentCell, unit.remainingMovement);
+        HexCell bestCell = null;
+        float bestScore = float.MinValue;
+
+        foreach (HexCell cell in candidates)
+        {
+            if (!IsCellValidForMovement(cell))
+                continue;
+
+            int distToEnemy = CombatSystem.HexDistance(cell, enemy.CurrentCell);
+
+            // Respetar distancia segura
+            if (safeDistance > 0 && distToEnemy < safeDistance)
+                continue;
+
+            // Debe estar en rango de ataque o acercándose
+            if (distToEnemy > unit.attackRange + 2)
+                continue;
+
+            float score = EvaluateCellScore(cell, enemy, safeDistance);
+
+            // Penalización por distancia desde posición actual
+            int distFromCurrent = CombatSystem.HexDistance(unit.CurrentCell, cell);
+            score -= distFromCurrent * 0.3f;
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestCell = cell;
+            }
+        }
+
+        return bestCell;
+    }
+
+    /// <summary>
+    /// Acción de ataque parametrizada.
+    /// </summary>
+    protected NodeState ExecuteAttackAction(int safeDistance = 0, bool avoidDanger = false)
+    {
+        Unit enemy = FindNearestEnemy();
+        if (enemy == null)
+        {
+            // Si no hay enemigo, ir a waypoint
+            Waypoint wp = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.EnemyBase)
+                       ?? tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.Attack);
+            if (wp != null && unit.remainingMovement > 0)
+            {
+                return MoveTowardsTarget(wp.cell, avoidDanger) ? NodeState.Success : NodeState.Failure;
+            }
+            return NodeState.Failure;
+        }
+
+        int distance = CombatSystem.HexDistance(unit.CurrentCell, enemy.CurrentCell);
+
+        // Atacar si está en rango y a distancia segura
+        if (distance <= unit.attackRange && distance >= safeDistance && !unit.hasAttacked)
+        {
+            unit.AttackUnit(enemy);
+        }
+
+        // Moverse hacia posición óptima si aún puede
+        if (unit.remainingMovement > 0)
+        {
+            HexCell bestPos = FindBestPosition(enemy, safeDistance);
+            if (bestPos != null && bestPos != unit.CurrentCell)
+            {
+                bool moved = MoveTowardsTarget(bestPos, avoidDanger);
+
+                // Atacar después de moverse si es posible
+                if (moved && !unit.hasAttacked)
+                {
+                    distance = CombatSystem.HexDistance(unit.CurrentCell, enemy.CurrentCell);
+                    if (distance <= unit.attackRange && distance >= safeDistance)
+                    {
+                        unit.AttackUnit(enemy);
+                    }
+                }
+                return moved ? NodeState.Success : NodeState.Failure;
+            }
+        }
+
+        return unit.hasAttacked ? NodeState.Success : NodeState.Failure;
+    }
+
+    /// <summary>
+    /// Acción de defensa parametrizada.
+    /// </summary>
+    protected NodeState ExecuteDefendAction(int safeDistance = 0)
+    {
+        Unit enemy = FindNearestEnemy();
+        if (enemy != null)
+        {
+            int distance = CombatSystem.HexDistance(unit.CurrentCell, enemy.CurrentCell);
+
+            // Atacar si está en rango y a distancia segura
+            if (distance <= unit.attackRange && distance >= safeDistance && !unit.hasAttacked)
+            {
+                unit.AttackUnit(enemy);
+            }
+
+            // Si está demasiado cerca (para Artillery), retroceder
+            if (safeDistance > 0 && distance < safeDistance && unit.remainingMovement > 0)
+            {
+                HexCell safeCell = FindBestPosition(enemy, safeDistance);
+                if (safeCell != null)
+                {
+                    bool moved = MoveTowardsTarget(safeCell, avoidDanger: true);
+                    return moved ? NodeState.Success : NodeState.Failure;
+                }
+            }
+
+            // Si está cerca, buscar posición defensiva
+            if (distance <= 3 && unit.remainingMovement > 0)
+            {
+                HexCell defensiveCell = FindBestPosition(enemy, safeDistance);
+                if (defensiveCell != null && defensiveCell != unit.CurrentCell)
+                {
+                    bool moved = MoveTowardsTarget(defensiveCell, avoidDanger: true);
+                    return moved ? NodeState.Success : NodeState.Failure;
+                }
+            }
+        }
+
+        // Si no hay enemigo, ir al waypoint de defensa
+        Waypoint defenseWaypoint = tacticalWaypoints?.GetNearestWaypoint(unit.CurrentCell, WaypointType.Defense);
+        if (defenseWaypoint != null && unit.remainingMovement > 0)
+        {
+            int distance = CombatSystem.HexDistance(unit.CurrentCell, defenseWaypoint.cell);
+            if (distance > 1)
+            {
+                bool moved = MoveTowardsTarget(defenseWaypoint.cell, avoidDanger: true);
+                return moved ? NodeState.Success : NodeState.Failure;
+            }
+        }
+
+        return NodeState.Success;
+    }
+
+    #endregion
 }

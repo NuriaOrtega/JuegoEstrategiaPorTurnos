@@ -308,6 +308,14 @@ public class GameManager : MonoBehaviour
             {
                 AddResources(playerID, RESOURCES_PER_NODE);
                 unit.CurrentCell.resourceCollected = true;
+
+                // Destruir el texto visual "+10"
+                Transform resourceText = unit.CurrentCell.transform.Find("ResourceText");
+                if (resourceText != null)
+                {
+                    Destroy(resourceText.gameObject);
+                }
+
                 Debug.Log($"Player {playerID} collected resource node at {unit.CurrentCell.gridPosition}");
             }
         }
@@ -353,32 +361,30 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
-        HexCell spawn0_1 = hexGrid.GetCell(0, 1);
-        HexCell spawn1_0 = hexGrid.GetCell(1, 0);
+        // Spawn Player 0 units en las primeras 2 celdas vecinas pasables
+        int spawned0 = 0;
+        foreach (HexCell neighbor in base0.neighbors)
+        {
+            if (spawned0 >= 2) break;
+            if (neighbor.IsPassable() && neighbor.occupyingUnit == null)
+            {
+                SpawnUnit(UnitType.Infantry, neighbor, 0);
+                spawned0++;
+            }
+        }
+        Debug.Log($"Player 0: {spawned0} starting units spawned near base");
 
-        if (spawn0_1 != null && spawn1_0 != null)
+        // Spawn Player 1 (IA) units en las primeras 2 celdas vecinas pasables
+        int spawned1 = 0;
+        foreach (HexCell neighbor in base1.neighbors)
         {
-            SpawnUnit(UnitType.Infantry, spawn0_1, 0);
-            SpawnUnit(UnitType.Infantry, spawn1_0, 0);
-            Debug.Log("Player 0 starting units spawned at (0,1) and (1,0)");
+            if (spawned1 >= 2) break;
+            if (neighbor.IsPassable() && neighbor.occupyingUnit == null)
+            {
+                SpawnUnit(UnitType.Infantry, neighbor, 1);
+                spawned1++;
+            }
         }
-        else
-        {
-            Debug.LogError("Cannot spawn Player 0 units: spawn cells not found!");
-        }
-
-        HexCell spawn9_8 = hexGrid.GetCell(9, 8);
-        HexCell spawn8_9 = hexGrid.GetCell(8, 9);
-
-        if (spawn9_8 != null && spawn8_9 != null)
-        {
-            SpawnUnit(UnitType.Infantry, spawn9_8, 1);
-            SpawnUnit(UnitType.Infantry, spawn8_9, 1);
-            Debug.Log("Player 1 (AI) starting units spawned at (9,8) and (8,9)");
-        }
-        else
-        {
-            Debug.LogError("Cannot spawn Player 1 units: spawn cells not found!");
-        }
+        Debug.Log($"Player 1 (AI): {spawned1} starting units spawned near base");
     }
 }

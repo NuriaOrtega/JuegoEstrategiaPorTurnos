@@ -6,7 +6,7 @@ public class HexGrid : MonoBehaviour
 {
     [Header("Configuración de la cuadrícula")]
     public int gridWidth = 11;
-    public int gridHeight = 11;
+    public int gridHeight = 10;
     public GameObject hexCellPrefab;
 
     [Header("Tamaño real del hexágono (unidades)")]
@@ -26,6 +26,8 @@ public class HexGrid : MonoBehaviour
 
     void Start()
     {
+        gridWidth = 10;  // Forzar para que las bases tengan solo 2 vecinos
+        gridHeight = 10;
         GenerateHexGrid();
     }
 

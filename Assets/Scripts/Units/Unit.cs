@@ -25,6 +25,9 @@ public class Unit : MonoBehaviour
     [Header("AI Order")]
     public OrderType currentOrder = OrderType.Idle;
 
+    // Bonus de terreno para evaluación de posiciones (usado por IA)
+    public Dictionary<TerrainType, float> terrainBonus;
+
     public void Initialize(UnitType type, int playerID, HexCell startCell)
     {
         unitType = type;
@@ -38,6 +41,7 @@ public class Unit : MonoBehaviour
         attackRange = stats.attackRange;
         movementPoints = stats.movementPoints;
 
+        InitializeTerrainBonus();
         ResetForNewTurn();
 
         if (CurrentCell != null)
@@ -59,6 +63,27 @@ public class Unit : MonoBehaviour
             default:
                 return HardcodedUnitStats.Infantry;
         }
+    }
+
+    private void InitializeTerrainBonus()
+    {
+        terrainBonus = unitType switch
+        {
+            UnitType.Infantry => new Dictionary<TerrainType, float>
+            {
+                { TerrainType.Bosque, 2f },
+                { TerrainType.Montaña, 1f }
+            },
+            UnitType.Cavalry => new Dictionary<TerrainType, float>
+            {
+                { TerrainType.Llanura, 2f }
+            },
+            UnitType.Artillery => new Dictionary<TerrainType, float>
+            {
+                { TerrainType.Montaña, 1.5f }
+            },
+            _ => new Dictionary<TerrainType, float>()
+        };
     }
 
     public bool MoveToCell(HexCell targetCell, DijkstraPathfinding pathfinding)
