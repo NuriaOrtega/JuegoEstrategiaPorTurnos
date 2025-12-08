@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.SocialPlatforms.Impl;
 
 public class StrategicManager : MonoBehaviour
 {
@@ -59,7 +60,6 @@ public class StrategicManager : MonoBehaviour
         // 2. Actualizar contexto y estado de la FSM
         UpdateStrategicContext();
         strategicFSM.Update();
-        ApplyFSMWeights();
 
         // 3. Asignar órdenes a las unidades
         AssignOrdersToUnits();
@@ -77,34 +77,18 @@ public class StrategicManager : MonoBehaviour
 
     private void UpdateStrategicContext()
     {
-        strategicContext.FriendlyUnits = friendlyUnits;
-        strategicContext.EnemyUnits = enemyUnits;
-        strategicContext.FriendlyUnitCount = friendlyUnits.Count;
-        strategicContext.EnemyUnitCount = enemyUnits.Count;
-        strategicContext.Resources = gameManager.resourcesPerPlayer[aiPlayerID];
-
         strategicContext.NumericalAdvantage = (float)friendlyUnits.Count / Mathf.Max(1, enemyUnits.Count);
 
         int enemyResources = gameManager.resourcesPerPlayer[1 - aiPlayerID];
-        strategicContext.ResourceAdvantage = (float)strategicContext.Resources / Mathf.Max(1, enemyResources);
+        // strategicContext.ResourceAdvantage = (float)strategicContext.Resources / Mathf.Max(1, enemyResources);
 
         strategicContext.IsBaseThreatened = CheckEnemyThreatNearBase();
 
         strategicContext.TerritorialControl = CalculateTerritorialControl();
 
-        Debug.Log($"[Context] Units: {strategicContext.FriendlyUnitCount} vs {strategicContext.EnemyUnitCount}, " +
-                  $"NumAdv: {strategicContext.NumericalAdvantage:F2}, ResAdv: {strategicContext.ResourceAdvantage:F2}, " +
-                  $"Territory: {strategicContext.TerritorialControl:F2}, BaseThreat: {strategicContext.IsBaseThreatened}");
-    }
-
-    private void ApplyFSMWeights()
-    {
-        // Los pesos ya estan en el contexto (asignados por OnEnter de cada estado)
-        aggressionLevel = strategicContext.AggressionLevel;
-        economicFocus = strategicContext.EconomicFocus;
-        currentStrategicState = strategicFSM.CurrentState;
-
-        Debug.Log($"[FSM] State: {currentStrategicState}, Aggression: {aggressionLevel:F2}, Economy: {economicFocus:F2}");
+        // Debug.Log($"[Context] Units: {strategicContext.FriendlyUnitCount} vs {strategicContext.EnemyUnitCount}, " +
+        //           $"NumAdv: {strategicContext.NumericalAdvantage:F2}, ResAdv: {strategicContext.ResourceAdvantage:F2}, " +
+        //           $"Territory: {strategicContext.TerritorialControl:F2}, BaseThreat: {strategicContext.IsBaseThreatened}");
     }
 
     private float CalculateTerritorialControl()
@@ -186,6 +170,8 @@ public class StrategicManager : MonoBehaviour
             return;
         }
 
+        if (strategicContext.NumericalAdvantage > 2f) return;
+
         UnitType unitToProduce = DecideUnitType();
         HardcodedUnitStats stats = GetStatsForType(unitToProduce);
 
@@ -211,30 +197,57 @@ public class StrategicManager : MonoBehaviour
 
         Debug.Log($"[Production Analysis] Infantry: {infantryCount}, Cavalry: {cavalryCount}, Artillery: {artilleryCount}");
 
-        bool enemyThreatNearBase = CheckEnemyThreatNearBase();
-        bool needMobility = cavalryCount < friendlyUnits.Count * 0.3f;
-        bool needFirepower = artilleryCount < friendlyUnits.Count * 0.2f;
-
-        if (enemyThreatNearBase && artilleryCount < 2)
+        Dictionary<UnitType, float> scores = new Dictionary<UnitType, float>()
         {
-            Debug.Log("[Production Decision] Enemy threat detected - producing Artillery");
-            return UnitType.Artillery;
+            { UnitType.Infantry, 0f },
+            { UnitType.Cavalry, 0f },
+            { UnitType.Artillery, 0f }
+        };
+
+        //Aumentan las probabilidades según el estilo estratégico adoptado
+        scores[UnitType.Cavalry] += aggressionLevel * 30f;
+        scores[UnitType.Artillery] += aggressionLevel * 15f;
+        scores[UnitType.Infantry] += economicFocus * 25f;
+
+        int totalUnits = friendlyUnits.Count;
+
+        //Equilibrio dentro del conjunto del ejercito
+        if (cavalryCount < totalUnits * 0.25f) scores[UnitType.Cavalry] += 15f;
+        if (artilleryCount < totalUnits * 0.20f) scores[UnitType.Infantry] += 20f;
+        if (infantryCount < totalUnits * 0.50f) scores[UnitType.Infantry] += 10f;
+
+        //Si hay un enemigo cerca de la base se le da prioridad a crear una unidad igual
+        if (CheckEnemyThreatNearBase())
+        {
+            scores[ObtainEnemyNearBase()] += 40f;
         }
 
-        if (aggressionLevel > 0.7f && needMobility)
-        {
-            Debug.Log("[Production Decision] Aggressive strategy - producing Cavalry");
-            return UnitType.Cavalry;
-        }
+        // bool enemyThreatNearBase = CheckEnemyThreatNearBase();
+        // bool needMobility = cavalryCount < friendlyUnits.Count * 0.3f;
+        // bool needFirepower = artilleryCount < friendlyUnits.Count * 0.2f;
 
-        if (needFirepower && friendlyUnits.Count > 2)
-        {
-            Debug.Log("[Production Decision] Need firepower - producing Artillery");
-            return UnitType.Artillery;
-        }
+        // if (enemyThreatNearBase && artilleryCount < 2)
+        // {
+        //     Debug.Log("[Production Decision] Enemy threat detected - producing Artillery");
+        //     return UnitType.Artillery;
+        // }
 
-        Debug.Log("[Production Decision] Default - producing Infantry");
-        return UnitType.Infantry;
+        // if (aggressionLevel > 0.7f && needMobility)
+        // {
+        //     Debug.Log("[Production Decision] Aggressive strategy - producing Cavalry");
+        //     return UnitType.Cavalry;
+        // }
+
+        // if (needFirepower && friendlyUnits.Count > 2)
+        // {
+        //     Debug.Log("[Production Decision] Need firepower - producing Artillery");
+        //     return UnitType.Artillery;
+        // }
+
+        // Debug.Log("[Production Decision] Default - producing Infantry");
+        // return UnitType.Infantry;
+
+        return scores.OrderByDescending(s => s.Value).First().Key;
     }
 
     private bool CheckEnemyThreatNearBase()
@@ -253,6 +266,39 @@ public class StrategicManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    private UnitType ObtainEnemyNearBase()
+    {
+        HexCell baseCell = hexGrid.GetPlayerBase(aiPlayerID);
+
+        UnitType tipoUnidadEnemiga = UnitType.Infantry;
+        int maxDistance = 5;
+
+        foreach (Unit enemy in enemyUnits)
+        {
+            if (enemy.CurrentCell != null)
+            {
+                int distance = CombatSystem.HexDistance(baseCell, enemy.CurrentCell);
+                if (distance <= maxDistance)
+                {
+                    switch (enemy.unitType)
+                    {
+                        case UnitType.Artillery: 
+                            tipoUnidadEnemiga = UnitType.Artillery;
+                            break;
+                        case UnitType.Cavalry:
+                            if (tipoUnidadEnemiga != UnitType.Artillery) tipoUnidadEnemiga = UnitType.Cavalry;
+                            break;
+                        case UnitType.Infantry:
+                            break;
+                    }
+                }
+                    
+            }
+        }
+
+        return tipoUnidadEnemiga;
     }
 
     private void AssignOrdersToUnits()

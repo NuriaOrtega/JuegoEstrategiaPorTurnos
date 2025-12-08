@@ -52,11 +52,6 @@ public class StrategicContext
     public float ResourceAdvantage { get; set; }
     public bool IsBaseThreatened { get; set; }
     public float TerritorialControl { get; set; }
-    public int FriendlyUnitCount { get; set; }
-    public int EnemyUnitCount { get; set; }
-    public int Resources { get; set; }
-    public List<Unit> FriendlyUnits { get; set; }
-    public List<Unit> EnemyUnits { get; set; }
 
     // Pesos estrategicos - asignados por OnEnter() de cada estado
     public float AggressionLevel { get; set; }
