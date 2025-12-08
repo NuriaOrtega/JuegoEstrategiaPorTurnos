@@ -8,6 +8,12 @@ public class GameManager : MonoBehaviour
 
     [Header("Estado del Juego")]
     public int currentPlayerTurn = 0; // 0 = Jugador, 1 = IA
+    public bool gameOver = false;
+
+    [Header("UI Fin de Partida")]
+    public GameObject victoriaImage;
+    public GameObject derrotaImage;
+    public GameObject menuButton;
 
     [Header("Unidades")]
     public List<Unit> player0Units = new List<Unit>();
@@ -54,6 +60,8 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        if (gameOver) return;
+
         if (Input.GetKeyDown(KeyCode.Space))
         {
             EndTurn();
@@ -212,6 +220,7 @@ public class GameManager : MonoBehaviour
     public void OnCellSelected(HexCell cell)
     {
         if (cell == null) return;
+        if (gameOver) return;
         if (currentPlayerTurn != 0) return;
 
         Debug.Log($"Celda seleccionada en posición: {cell.gridPosition}");
@@ -332,6 +341,7 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("==================== PLAYER 1 (AI) WINS! ====================");
             Debug.Log("AI captured the player's base!");
+            ShowGameOver(false);
             return true;
         }
 
@@ -339,10 +349,27 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("==================== PLAYER 0 (HUMAN) WINS! ====================");
             Debug.Log("Player captured the AI's base!");
+            ShowGameOver(true);
             return true;
         }
 
         return false;
+    }
+
+    private void ShowGameOver(bool playerWon)
+    {
+        gameOver = true;
+
+        if (playerWon)
+        {
+            if (victoriaImage != null) victoriaImage.SetActive(true);
+        }
+        else
+        {
+            if (derrotaImage != null) derrotaImage.SetActive(true);
+        }
+
+        if (menuButton != null) menuButton.SetActive(true);
     }
     public int GetCurrentPlayerResources()
     {

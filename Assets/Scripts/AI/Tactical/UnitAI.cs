@@ -259,12 +259,28 @@ public class UnitAI : MonoBehaviour
         if (target == unit.CurrentCell)
             return true; // Ya estamos en el objetivo
 
+        // Si el objetivo está ocupado, buscar celda adyacente libre
+        HexCell actualTarget = target;
+        if (target.IsOccupied() && target.occupyingUnit != unit)
+        {
+            actualTarget = FindNearestFreeNeighbor(target);
+            if (actualTarget == null)
+                actualTarget = target; // Intentar de todos modos
+        }
+
         // Calcular camino táctico (A* con influencia)
-        var fullPath = tacticalPathfinding.FindTacticalPath(unit.CurrentCell, target, unit, avoidDanger);
+        var fullPath = tacticalPathfinding.FindTacticalPath(unit.CurrentCell, actualTarget, unit, avoidDanger);
+
+        // Si no encuentra camino evitando peligro, intentar sin evitarlo
+        if ((fullPath == null || fullPath.Count < 2) && avoidDanger)
+        {
+            Debug.Log($"[UnitAI] {gameObject.name} retrying path without danger avoidance");
+            fullPath = tacticalPathfinding.FindTacticalPath(unit.CurrentCell, actualTarget, unit, false);
+        }
 
         if (fullPath == null || fullPath.Count < 2)
         {
-            Debug.Log($"[UnitAI] {gameObject.name} no path found to {target.gridPosition}");
+            Debug.Log($"[UnitAI] {gameObject.name} no path found to {actualTarget.gridPosition}");
             return false;
         }
 
@@ -282,10 +298,34 @@ public class UnitAI : MonoBehaviour
 
         if (moved)
         {
-            Debug.Log($"[UnitAI] {gameObject.name} moved towards {target.gridPosition}, reached {unit.CurrentCell.gridPosition}");
+            Debug.Log($"[UnitAI] {gameObject.name} moved towards {actualTarget.gridPosition}, reached {unit.CurrentCell.gridPosition}");
         }
 
         return moved;
+    }
+
+    /// <summary>
+    /// Busca la celda libre más cercana al objetivo.
+    /// </summary>
+    private HexCell FindNearestFreeNeighbor(HexCell target)
+    {
+        HexCell best = null;
+        int bestDist = int.MaxValue;
+
+        foreach (HexCell neighbor in target.neighbors)
+        {
+            if (neighbor.IsPassableForPlayer(unit.OwnerPlayerID) && !neighbor.IsOccupied())
+            {
+                int dist = CombatSystem.HexDistance(unit.CurrentCell, neighbor);
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    best = neighbor;
+                }
+            }
+        }
+
+        return best;
     }
 
     protected Unit FindNearestEnemy()
@@ -486,7 +526,7 @@ public class UnitAI : MonoBehaviour
         Unit enemy = FindNearestEnemy();
         if (enemy == null)
         {
-            // Si no hay enemigo, ir a waypoint
+            // Si no hay enemigo, ir a waypoint (base enemiga)
             Waypoint wp = tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.EnemyBase)
                        ?? tacticalWaypoints?.GetHighestPriorityWaypoint(WaypointType.Attack);
             if (wp != null && unit.remainingMovement > 0)
@@ -508,6 +548,14 @@ public class UnitAI : MonoBehaviour
         if (unit.remainingMovement > 0)
         {
             HexCell bestPos = FindBestPosition(enemy, safeDistance);
+
+            // Si el enemigo está lejos y no hay posición óptima, ir directamente hacia él
+            if (bestPos == null && distance > unit.attackRange + 2)
+            {
+                bool moved = MoveTowardsTarget(enemy.CurrentCell, avoidDanger);
+                return moved ? NodeState.Success : NodeState.Failure;
+            }
+
             if (bestPos != null && bestPos != unit.CurrentCell)
             {
                 bool moved = MoveTowardsTarget(bestPos, avoidDanger);
@@ -556,7 +604,7 @@ public class UnitAI : MonoBehaviour
             }
 
             // Si está cerca, buscar posición defensiva
-            if (distance <= 3 && unit.remainingMovement > 0)
+            if (distance <= unit.attackRange + 2 && unit.remainingMovement > 0)
             {
                 HexCell defensiveCell = FindBestPosition(enemy, safeDistance);
                 if (defensiveCell != null && defensiveCell != unit.CurrentCell)
@@ -565,6 +613,13 @@ public class UnitAI : MonoBehaviour
                     return moved ? NodeState.Success : NodeState.Failure;
                 }
             }
+
+            // Si el enemigo está lejos, interceptarlo
+            if (distance > unit.attackRange + 2 && unit.remainingMovement > 0)
+            {
+                bool moved = MoveTowardsTarget(enemy.CurrentCell, avoidDanger: true);
+                return moved ? NodeState.Success : NodeState.Failure;
+            }
         }
 
         // Si no hay enemigo, ir al waypoint de defensa
@@ -572,7 +627,7 @@ public class UnitAI : MonoBehaviour
         if (defenseWaypoint != null && unit.remainingMovement > 0)
         {
             int distance = CombatSystem.HexDistance(unit.CurrentCell, defenseWaypoint.cell);
-            if (distance > 1)
+            if (distance > 0)
             {
                 bool moved = MoveTowardsTarget(defenseWaypoint.cell, avoidDanger: true);
                 return moved ? NodeState.Success : NodeState.Failure;

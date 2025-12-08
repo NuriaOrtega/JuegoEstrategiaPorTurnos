@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using UnityEngine.EventSystems;
 
 public class MouseInput : MonoBehaviour
 {
@@ -28,6 +28,10 @@ public class MouseInput : MonoBehaviour
 
     void Update()
     {
+        // No procesar input si el juego terminó o el ratón está sobre UI
+        if (gameManager != null && gameManager.gameOver) return;
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
+
         HandleMouseHover();
         HandleMouseClick();
     }
