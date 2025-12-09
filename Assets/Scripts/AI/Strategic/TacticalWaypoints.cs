@@ -72,13 +72,9 @@ public class TacticalWaypoints : MonoBehaviour
         List<HexCell> allCells = hexGrid.GetAllCells();
         foreach (HexCell cell in allCells)
         {
-            if (cell.isResourceNode && cell.resourceCollected)
+            if (cell.IsOccupied() && cell.OwnerPlayerID == 0)
             {
-                bool enemyNearby = CheckEnemyProximity(cell, enemyPlayerID);
-                if (enemyNearby)
-                {
-                    waypoints.Add(new Waypoint(cell, WaypointType.Attack, 6, aiPlayerID));
-                }
+                waypoints.Add(new Waypoint(cell, WaypointType.Attack, 6, aiPlayerID));
             }
         }
     }

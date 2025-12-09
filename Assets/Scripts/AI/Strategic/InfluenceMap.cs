@@ -11,6 +11,7 @@ public class InfluenceMap : MonoBehaviour
     private HexGrid hexGrid;
     private float[,] friendlyInfluence;
     private float[,] enemyInfluence;
+    private float[,] moveCostInfluence;
     private int gridWidth;
     private int gridHeight;
 
@@ -23,6 +24,17 @@ public class InfluenceMap : MonoBehaviour
             gridHeight = hexGrid.gridHeight;
             friendlyInfluence = new float[gridWidth, gridHeight];
             enemyInfluence = new float[gridWidth, gridHeight];
+            moveCostInfluence = new float[gridWidth, gridHeight];
+        
+            for (int x = 0; x < gridWidth; x++)
+            {
+                for (int y = 0; y < gridHeight; y++)
+                {
+                    HexCell cell = hexGrid.GetCell(x, y);
+                    moveCostInfluence[x, y] = cell != null ? cell.terrainType.GetMovementCost() : float.PositiveInfinity;
+
+                }
+            }
         }
     }
 
@@ -36,7 +48,7 @@ public class InfluenceMap : MonoBehaviour
                 continue;
 
             float unitStrength = CalculateUnitStrength(unit);
-            bool isFriendly = (unit.OwnerPlayerID == aiPlayerID);
+            bool isFriendly = unit.OwnerPlayerID == aiPlayerID;
 
             PropagateInfluence(unit.CurrentCell, unitStrength, isFriendly);
         }
@@ -94,7 +106,7 @@ public class InfluenceMap : MonoBehaviour
 
             foreach (HexCell neighbor in current.neighbors)
             {
-                float neighborCost = currentCost + neighbor.GetMovementCost();
+                float neighborCost = currentCost + moveCostInfluence[neighbor.gridPosition.x, neighbor.gridPosition.y];
 
                 if (neighborCost <= maxInfluenceRange)
                 {
@@ -184,7 +196,7 @@ public class InfluenceMap : MonoBehaviour
         return dangerZones;
     }
 
-    public HexCell FindNearestSafeCell(HexCell from)
+    public HexCell terrainCostInfluence(HexCell from)
     {
         List<HexCell> safeZones = GetSafeZones();
         if (safeZones.Count == 0)
@@ -259,5 +271,12 @@ public class InfluenceMap : MonoBehaviour
         } else color = new Color(0f, 0f, 0f, 0f);
 
         return color;
+    }
+
+    public Color ObtainColorByTerrainInfluence(HexCell celda)
+    {
+        float influencia = moveCostInfluence[celda.gridPosition.x, celda.gridPosition.y];
+        float intensity = Mathf.Clamp01(influencia / 10f);
+        return new Color(intensity, intensity, intensity, 0.5f);
     }
 }

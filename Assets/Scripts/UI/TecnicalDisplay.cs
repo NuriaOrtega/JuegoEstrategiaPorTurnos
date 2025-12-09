@@ -15,7 +15,8 @@ public class TecnicalDisplay : MonoBehaviour
     {
         Normal,
         Selection,
-        Influence,
+        InfluenceNet,
+        InfluenceTerrain,
         Waypoint
     }
 
@@ -32,7 +33,8 @@ public class TecnicalDisplay : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.I)) SetViewMode(ViewMode.Influence);
+        if (Input.GetKeyDown(KeyCode.I)) SetViewMode(ViewMode.InfluenceNet);
+        else if (Input.GetKeyDown(KeyCode.T)) SetViewMode(ViewMode.InfluenceTerrain);
         else if (Input.GetKeyDown(KeyCode.W)) SetViewMode(ViewMode.Waypoint);
         else if (Input.GetKeyDown(KeyCode.N)) SetViewMode(ViewMode.Normal);
     }
@@ -124,8 +126,11 @@ public class TecnicalDisplay : MonoBehaviour
             case ViewMode.Selection:
                 celda.SetColor(gameManager.pathfinding.ColorByRange(celda));
                 break;
-            case ViewMode.Influence: 
+            case ViewMode.InfluenceNet: 
                 celda.SetColor(influenceMap.ObtainColorByNetInfluence(celda));
+                break;
+            case ViewMode.InfluenceTerrain: 
+                celda.SetColor(influenceMap.ObtainColorByTerrainInfluence(celda));
                 break;
             case ViewMode.Waypoint:
                 break;
